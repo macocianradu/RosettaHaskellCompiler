@@ -1,0 +1,88 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.34.4.
+--
+-- see: https://github.com/sol/hpack
+
+name:           RosettaParser
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/githubuser/RosettaParser#readme>
+homepage:       https://github.com/githubuser/RosettaParser#readme
+bug-reports:    https://github.com/githubuser/RosettaParser/issues
+author:         Author name here
+maintainer:     example@example.com
+copyright:      2021 Author name here
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    ChangeLog.md
+
+source-repository head
+  type: git
+  location: https://github.com/githubuser/RosettaParser
+
+library
+  exposed-modules:
+      Model.Enum
+      Model.Function
+      Model.Type
+      Parser.AnotherExpression
+      Parser.Enum
+      Parser.Expr
+      Parser.Expression
+      Parser.Function
+      Parser.General
+      Parser.Type
+      PrettyPrinter.Enum
+      PrettyPrinter.Function
+      PrettyPrinter.General
+      PrettyPrinter.Type
+  other-modules:
+      Paths_RosettaParser
+  hs-source-dirs:
+      src
+  build-depends:
+      base >=4.7 && <5
+    , megaparsec
+    , parser-combinators
+    , prettyprinter
+    , text
+    , time
+  default-language: Haskell2010
+
+executable RosettaParser-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_RosettaParser
+  hs-source-dirs:
+      app
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      RosettaParser
+    , base >=4.7 && <5
+    , megaparsec
+    , parser-combinators
+    , prettyprinter
+    , text
+    , time
+  default-language: Haskell2010
+
+test-suite RosettaParser-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_RosettaParser
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      RosettaParser
+    , base >=4.7 && <5
+    , megaparsec
+    , parser-combinators
+    , prettyprinter
+    , text
+    , time
+  default-language: Haskell2010

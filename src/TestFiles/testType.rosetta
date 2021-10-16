@@ -1,0 +1,13 @@
+type Period: <"description">
+    periodMultiplier int (1..1) <"A time period multiplier, e.g. 1, 2 or 3 etc. A negative value can be used when specifying an offset relative to another date, e.g. -2 days.">
+    period periodEnum (1..1) <"A time period, e.g. a day, week, month or year of the stream. If the periodMultiplier values is 0 (zero) then period must contain the value D (day).">
+    testMany testType (0..*) <"Test many">
+    testSome testSomeType (1..*) <"Test some">
+    testMaybeOne testZeroOneType (0..1) <"Test zero or one">
+
+type Period: <"description">
+    periodMultiplier int (1..1) <"A time period multiplier, e.g. 1, 2 or 3 etc. A negative value can be used when specifying an offset relative to another date, e.g. -2 days.">
+    period periodEnum (1..1) <"A time period, e.g. a day, week, month or year of the stream. If the periodMultiplier values is 0 (zero) then period must contain the value D (day).">
+    testMany testType (0..*) <"Test many">
+    testSome testSomeType (1..*) <"Test some">
+    testMaybeOne testZeroOneType (0..1) <"Test zero or one">

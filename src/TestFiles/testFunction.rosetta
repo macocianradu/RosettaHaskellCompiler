@@ -1,0 +1,12 @@
+func EquityPriceObservation: <"Function specification for the observation of an equity price, based on the attributes of the 'EquityValuation' class.">
+   inputs:
+      equity Equity (1..1)
+      valuationDate AdjustableOrRelativeDate (1..1)
+      valuationTime BusinessCenterTime (0..1)
+      timeType TimeTypeEnum (0..1)
+      determinationMethod DeterminationMethodEnum (1..*)
+   output:
+      observation ObservationPrimitive (1..1)
+
+   assign-output
+       observation: if asd exists then var2
