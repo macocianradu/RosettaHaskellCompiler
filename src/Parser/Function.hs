@@ -13,58 +13,42 @@ import Parser.General
 functionParser :: Parser Function
 functionParser =
     do
-        _ <- string "func"
-        _ <- spaceConsumer
+        _ <- lexeme $ string "func"
         fName <- pascalNameParser
-        _ <- char ':'
-        _ <- spaceConsumer
+        _ <- lexeme $ char ':'
         fDescription <- descriptionParser
         fInput <- inputAttributesParser
         fOutput <- outputAttributeParser
         fAssignments <- many assignmentParser
-        _ <- spaceConsumer
         return (MakeFunction fName (Just fDescription) fInput fOutput fAssignments)
 
 assignmentParser :: Parser (Expression, Expression)
 assignmentParser =
     do
-        _ <- string "assign-output"
-        _ <- spaceConsumer
+        _ <- lexeme $ string "assign-output"
         name <- expressionParser
-        _ <- spaceConsumer
-        _ <- char ':'
-        _ <- spaceConsumer
+        _ <- lexeme $ char ':'
         expr <- expressionParser
-        _ <- spaceConsumer
         return (name, expr)
 
 inputAttributesParser :: Parser [TypeAttribute]
 inputAttributesParser =
     do
-        _ <- string "inputs:"
-        _ <- spaceConsumer
-        inputs <- many $ try attributeParser
-        _ <- spaceConsumer
-        return inputs
+        _ <- lexeme $ string "inputs:"
+        many $ try attributeParser
 
 outputAttributeParser :: Parser TypeAttribute
 outputAttributeParser =
     do
-        _ <- string "output:"
-        _ <- spaceConsumer
-        outputs <- attributeParser
-        _ <- spaceConsumer
-        return outputs
+        _ <- lexeme $ string "output:"
+        attributeParser
         
 attributeParser :: Parser TypeAttribute
 attributeParser =
     do
         nam <- camelNameParser 
-        _ <- spaceConsumer
         typ <- pascalNameParser <|> camelNameParser
-        _ <- spaceConsumer
         crd <- cardinalityParser
-        _ <- spaceConsumer
         desc <- optional descriptionParser
         return $ MakeTypeAttribute nam typ crd desc
         

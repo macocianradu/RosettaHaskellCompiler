@@ -14,41 +14,30 @@ enumParser =
         eName <- enumNameParser
         eDescription <- descriptionParser
         values <- many enumValueParser
-        _ <- spaceConsumer
         return (MakeEnum eName (Just eDescription) values)
 
 --parseTest enumValueParser "D displayName \"day\" <\"Day\">"        
 enumValueParser :: Parser EnumValue
 enumValueParser = 
     do
-        vName <- enumValueNameParser
+        vName <- nameParser
         dName <- enumValueDisplayNameParser
         vDescription <- descriptionParser
         return (MakeEnumValue vName (Just vDescription) (Just dName))
 
-enumValueNameParser :: Parser String
-enumValueNameParser = 
-    do
-        name <- nameParser
-        _ <- spaceConsumer
-        return name
-
 enumValueDisplayNameParser :: Parser String
 enumValueDisplayNameParser =
     do
-        _ <- string "displayName \""
-        name <- anySingle `manyTill` char '"'
-        _ <- spaceConsumer
-        return name
+        _ <- lexeme $ string "displayName"
+        _ <- char '"'
+        lexeme $ anySingle `manyTill` char '"'
 
 enumNameParser :: Parser String
 enumNameParser = 
     do
-        _ <- string "enum"
-        _ <- spaceConsumer
+        _ <- lexeme $ string "enum"
         name <- nameParser
-        _ <- char ':'
-        _ <- spaceConsumer
+        _ <- lexeme $ char ':'
         return name 
 
 periodEnum :: EnumType

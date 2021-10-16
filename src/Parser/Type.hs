@@ -13,83 +13,56 @@ typeParser =
     do 
         tName <- typeNameParser
         tDescription <- descriptionParser
-        tAttributes <- many $ try typeAttributeParserWDesc <|> try typeAttributeParser
-        _ <- spaceConsumer
+        tAttributes <- many $ try typeAttributeParser
         return (MakeType tName (Just tDescription) tAttributes)
-
-typeAttributeParserWDesc :: Parser TypeAttribute
-typeAttributeParserWDesc = 
-    do
-        (MakeTypeAttribute aName aType card Nothing) <- typeAttributeParser
-        descriptionParser >>= \aDescription -> return (MakeTypeAttribute aName aType card (Just aDescription))
 
 typeAttributeParser :: Parser TypeAttribute
 typeAttributeParser = 
     do
-        aName <- attributeNameParser
+        aName <- camelNameParser
         aType <- nameParser
-        _ <- spaceConsumer
         card <- cardinalityParser
-        _ <- spaceConsumer
-        return (MakeTypeAttribute aName aType card Nothing)
+        desc <- optional descriptionParser
+        return (MakeTypeAttribute aName aType card desc)
 
 cardinalityParser :: Parser Cardinality
 cardinalityParser =
     do
-        card <- parseExactlyOne <|> parseOneOrMore <|> parseZeroOrMore <|> parseZeroOrOne
-        _ <- spaceConsumer
-        return card
+        parseExactlyOne <|> parseOneOrMore <|> parseZeroOrMore <|> parseZeroOrOne
 
 parseOneOrMore :: Parser Cardinality
 parseOneOrMore = 
     do
-        _ <- string "(1..*)"
+        _ <- lexeme $ string "(1..*)"
         return OneOrMore
 
 
 parseExactlyOne :: Parser Cardinality
 parseExactlyOne = 
     do
-        _ <- string "(1..1)"
+        _ <- lexeme $ string "(1..1)"
         return ExactlyOne
         
         
 parseZeroOrMore :: Parser Cardinality
 parseZeroOrMore = 
     do
-        _ <- string "(0..*)"
+        _ <- lexeme $ string "(0..*)"
         return ZeroOrMore
         
         
 parseZeroOrOne :: Parser Cardinality
 parseZeroOrOne = 
     do
-        _ <- string "(0..1)"
+        _ <- lexeme $ string "(0..1)"
         return ZeroOrOne
-
-attributeNameParser :: Parser String
-attributeNameParser = 
-    do
-        name <- camelNameParser
-        _ <- spaceConsumer
-        return name
-
-enumValueDisplayNameParser :: Parser String
-enumValueDisplayNameParser =
-    do
-        _ <- string "displayName \""
-        name <- anySingle `manyTill` char '"'
-        _ <- spaceConsumer
-        return name
 
 typeNameParser :: Parser String
 typeNameParser = 
     do
-        _ <- string "type"
-        _ <- spaceConsumer
+        _ <- lexeme $ string "type"
         name <- pascalNameParser
-        _ <- char ':'
-        _ <- spaceConsumer
+        _ <- lexeme $ char ':'
         return name 
 
 periodType :: Type

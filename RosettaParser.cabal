@@ -28,9 +28,7 @@ library
       Model.Enum
       Model.Function
       Model.Type
-      Parser.Expression
       Parser.Enum
-      Parser.Expr
       Parser.Expression
       Parser.Function
       Parser.General

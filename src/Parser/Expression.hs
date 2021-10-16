@@ -3,47 +3,29 @@
 module Parser.Expression where
 
 import Parser.General
+import Model.Function
 import qualified Data.Text as Text
 import Text.Megaparsec
 import Text.Megaparsec.Char
-  
-data Expression = Variable String
-    | Int String
-    | Real String
-    | Boolean String
-    | Empty
-    | Parens Expression
-    | List [Expression]
-    | Function String [Expression]
-    | PrefixExp String Expression
-    | PostfixExp String Expression
-    | InfixExp String Expression Expression
-    | IfSimple Expression Expression
-    | IfElse Expression Expression Expression
-    deriving (Show)
-
 
 expressionParser :: Parser Expression
 expressionParser = 
     choice [ ifParser,
-    try functionParser,
+    try functionCallParser,
     eqParser]
 
 --------------------------------------------
 -- Command Structures ----------------------
 --------------------------------------------
 
-functionParser :: Parser Expression
-functionParser =
+functionCallParser :: Parser Expression
+functionCallParser =
     do
-        f <- pascalNameParser
-        _ <- spaceConsumer
-        _ <- char '('
-        ats <- many $ try (expressionParser >>= \ats -> spaceConsumer >> char ',' >> spaceConsumer >> return ats)
-        lat <- optional expressionParser
-        _ <- spaceConsumer
-        _ <- char ')'
-        _ <- spaceConsumer
+        f <- lexeme pascalNameParser
+        _ <- lexeme $ char '('
+        ats <- many $ try (expressionParser >>= \ats -> lexeme $ char ',' >> return ats)
+        lat <- optional $ lexeme expressionParser
+        _ <- lexeme $ char ')'
         case lat of
             Nothing -> return $ Function f []
             Just at -> return $ Function f (ats ++ [at])
@@ -51,16 +33,11 @@ functionParser =
 ifParser :: Parser Expression
 ifParser =
     do
-        _ <- string "if"
-        _ <- spaceConsumer
-        condition <- between (char '(') (char ')') expressionParser <|> expressionParser
-        _ <- spaceConsumer
-        _ <- string "then"
-        _ <- spaceConsumer
+        _ <- lexeme $ string "if"
+        condition <- lexeme $ between (char '(') (char ')') expressionParser <|> expressionParser
+        _ <- lexeme $ string "then"
         expr <- expressionParser
-        _ <- spaceConsumer
-        els <- observing $ string "else"
-        _ <- spaceConsumer
+        els <- observing $ lexeme $ string "else"
         case els of
             Left _ -> return (IfSimple condition expr)
             Right _ -> expressionParser >>= \expr2 -> return (IfElse condition expr expr2)
@@ -75,38 +52,29 @@ parens = between (char '(') (char ')')
 listParser :: Parser Expression
 listParser =
     do
-        _ <- char '['
-        _ <- spaceConsumer
-        expressions <- many $ try (expressionParser >>= \ex -> spaceConsumer >> char ',' >> spaceConsumer >> return ex)
-        _ <- spaceConsumer
+        _ <- lexeme $ char '['
+        expressions <- many $ try (expressionParser >>= \ex -> lexeme $ char ',' >> return ex)
         lastExpr <- try expressionParser
-        _ <- spaceConsumer
-        _ <- char ']'
-        _ <- spaceConsumer
+        _ <- lexeme $ char ']'
         return $ List (expressions ++ [lastExpr])
 
 variableParser :: Parser Expression
 variableParser =
     do
         var <- camelNameParser
-        _ <- spaceConsumer
         inner <- many innerVariableParser
         return $ Variable (var ++ concatMap ("->" ++) inner)
 
 innerVariableParser :: Parser String
 innerVariableParser =
     do
-        _ <- string "->"
-        _ <- spaceConsumer
-        var <- camelNameParser
-        _ <- spaceConsumer
-        return var
+        _ <- lexeme $ string "->"
+        camelNameParser
 
 integerParser :: Parser Expression
 integerParser =
     do
-        nr <- some digitChar
-        _ <- spaceConsumer
+        nr <- lexeme $ some digitChar
         return $ Int $ show nr
         
 decimalParser :: Parser Expression
@@ -114,22 +82,19 @@ decimalParser =
     do
         nr <- some digitChar
         _ <- char '.'
-        real <- many digitChar
-        _ <- spaceConsumer
+        real <- lexeme $ many digitChar
         return $ Real $ show nr ++ "." ++ real
         
 booleanParser :: Parser Expression
 booleanParser =
     do
-        bol <- string "True" <|> string "False"
-        _ <- spaceConsumer
+        bol <- lexeme (string "True" <|> string "False")
         return $ Boolean $ Text.unpack bol
 
 emptyParser :: Parser Expression
 emptyParser = 
     do
-        _ <- string "empty"
-        _ <- spaceConsumer
+        _ <- lexeme $ string "empty"
         return Empty
 
 terminalParser :: Parser Expression
@@ -153,19 +118,14 @@ terminalParser =
 prefixParser :: Parser Expression
 prefixParser = 
     do
-        op <- choice $ fmap (try . string . Text.pack) prefixOperators
-        _ <- spaceConsumer
-        ex <- expressionParser
-        _ <- spaceConsumer
-        return $ PrefixExp (Text.unpack op) ex
+        op <- lexeme $ choice $ fmap (try . string . Text.pack) prefixOperators
+        PrefixExp (Text.unpack op) <$> expressionParser
 
 eqParser :: Parser Expression
 eqParser =
     do
         s <- sumParser
-        _ <- spaceConsumer
-        op <- observing (string  "<=" <|> string "=" <|> string "<" <|> string ">" <|> string ">=")
-        _ <- spaceConsumer
+        op <- lexeme $ observing (string  "<=" <|> string "=" <|> string "<" <|> string ">" <|> string ">=")
         case op of
             Left _ -> return s
             Right o -> eqParser >>= \ex -> return $ InfixExp (Text.unpack o) s ex
@@ -174,9 +134,7 @@ sumParser :: Parser Expression
 sumParser =
     do
         f <- factorParser
-        _ <- spaceConsumer
-        op <- observing (char '+' <|> char '-')
-        _ <- spaceConsumer
+        op <- lexeme $ observing (char '+' <|> char '-')
         case op of
             Left _ -> return f
             Right o -> sumParser >>= \ex -> return $ reverseExpression $ InfixExp [o] f ex
@@ -185,9 +143,7 @@ factorParser :: Parser Expression
 factorParser = 
     do 
         p <- powerParser
-        _ <- spaceConsumer
-        op <- observing (char '*' <|> char '/')
-        _ <- spaceConsumer
+        op <- lexeme $ observing (char '*' <|> char '/')
         case op of
             Left _ -> return p
             Right o -> factorParser >>= \ex -> return $ reverseExpression $ InfixExp [o] p ex
@@ -196,9 +152,7 @@ powerParser :: Parser Expression
 powerParser = 
     do
         p <- postfixParser
-        _ <- spaceConsumer
-        op <- observing $ char '^'
-        _ <- spaceConsumer
+        op <- lexeme $ observing $ char '^'
         case op of
             Left _ -> return p
             Right _ -> powerParser >>= \ex -> return $ InfixExp "^" p ex
@@ -207,9 +161,7 @@ postfixParser :: Parser Expression
 postfixParser = 
     do
         t <- terminalParser
-        _ <- spaceConsumer
-        op <- observing (string "exists" <|> string "is absent" <|> string "count" <|> string "only-element")
-        _ <- spaceConsumer
+        op <- lexeme $ observing (string "exists" <|> string "is absent" <|> string "count" <|> string "only-element")
         case op of
             Left _ -> return t
             Right o -> return $ PostfixExp (Text.unpack o) t
@@ -243,9 +195,9 @@ testArith5 = parseTest expressionParser "a + b - c * d ^ e"
 testArith6 = parseTest expressionParser "1 - 2 - 3 - 4 - 5 - 6"
 testList = parseTest expressionParser "[1, 2, 3]"
 testList2 = parseTest expressionParser "[1, 2 + 3, e]"
-testFun = parseTest functionParser "Function()"
-testFun2 = parseTest functionParser "Function(e)"
-testFun3 = parseTest functionParser "Function(3, 3+2,e)"
+testFun = parseTest functionCallParser "Function()"
+testFun2 = parseTest functionCallParser "Function(e)"
+testFun3 = parseTest functionCallParser "Function(3, 3+2,e)"
 testIf = parseTest expressionParser "if (Function(2 + 3, e)) then a + b - c * d ^ e -> x else not a exists"
 testEverything = parseTest expressionParser "if [1, Function(3)] then 1 - 2 - 3 * a -> b ^ c"
 testFail = parseTest expressionParser "if[1,as]thenxandoelseaora"
