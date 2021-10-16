@@ -28,7 +28,7 @@ library
       Model.Enum
       Model.Function
       Model.Type
-      Parser.AnotherExpression
+      Parser.Expression
       Parser.Enum
       Parser.Expr
       Parser.Expression
