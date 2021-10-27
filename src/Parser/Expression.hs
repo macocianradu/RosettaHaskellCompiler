@@ -125,10 +125,13 @@ eqParser :: Parser Expression
 eqParser =
     do
         s <- sumParser
-        op <- lexeme $ observing (string  "<=" <|> string "=" <|> string "<" <|> string ">" <|> string ">=")
+        op <- lexeme $ observing $ choice $ fmap (try . string . Text.pack) eqFunctions
         case op of
             Left _ -> return s
             Right o -> eqParser >>= \ex -> return $ InfixExp (Text.unpack o) s ex
+
+eqFunctions :: [String]
+eqFunctions = ["=", "<", "<=", ">", ">=", "<>", "all =", "all <>", "any =", "any <>"]
 
 sumParser :: Parser Expression
 sumParser =
@@ -148,10 +151,19 @@ factorParser =
             Left _ -> return p
             Right o -> factorParser >>= \ex -> return $ reverseExpression $ InfixExp [o] p ex
 
+boolOpParser :: Parser Expression
+boolOpParser = 
+    do 
+        p <- postfixParser
+        op <- lexeme $ observing (string "or" <|> string "and")
+        case op of
+            Left _ -> return p
+            Right o -> boolOpParser >>= \ex -> return $ InfixExp (Text.unpack o) p ex
+
 powerParser :: Parser Expression
 powerParser = 
     do
-        p <- postfixParser
+        p <- boolOpParser
         op <- lexeme $ observing $ char '^'
         case op of
             Left _ -> return p
@@ -161,10 +173,13 @@ postfixParser :: Parser Expression
 postfixParser = 
     do
         t <- terminalParser
-        op <- lexeme $ observing (string "exists" <|> string "is absent" <|> string "count" <|> string "only-element")
+        op <- lexeme $ observing $ choice $ fmap (try . string . Text.pack) postfixFunctions
         case op of
             Left _ -> return t
             Right o -> return $ PostfixExp (Text.unpack o) t
+
+postfixFunctions :: [String]
+postfixFunctions = ["exists", "is absent", "count", "only-element", "single exists", "multiple exists"]
 
 --------------------------------------------
 -- Auxiliary  ------------------------------
@@ -201,3 +216,4 @@ testFun3 = parseTest functionCallParser "Function(3, 3+2,e)"
 testIf = parseTest expressionParser "if (Function(2 + 3, e)) then a + b - c * d ^ e -> x else not a exists"
 testEverything = parseTest expressionParser "if [1, Function(3)] then 1 - 2 - 3 * a -> b ^ c"
 testFail = parseTest expressionParser "if[1,as]thenxandoelseaora"
+testOr = parseTest expressionParser "a or b"

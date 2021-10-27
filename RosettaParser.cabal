@@ -37,6 +37,7 @@ library
       PrettyPrinter.Function
       PrettyPrinter.General
       PrettyPrinter.Type
+      Semantic.TypeChecker
   other-modules:
       Paths_RosettaParser
   hs-source-dirs:
@@ -44,6 +45,7 @@ library
   build-depends:
       base >=4.7 && <5
     , megaparsec
+    , mtl
     , parser-combinators
     , prettyprinter
     , text
@@ -61,6 +63,7 @@ executable RosettaParser-exe
       RosettaParser
     , base >=4.7 && <5
     , megaparsec
+    , mtl
     , parser-combinators
     , prettyprinter
     , text
@@ -79,6 +82,7 @@ test-suite RosettaParser-test
       RosettaParser
     , base >=4.7 && <5
     , megaparsec
+    , mtl
     , parser-combinators
     , prettyprinter
     , text
