@@ -16,11 +16,11 @@ functionParser =
         _ <- lexeme $ string "func"
         fName <- pascalNameParser
         _ <- lexeme $ char ':'
-        fDescription <- descriptionParser
+        fDescription <- optional descriptionParser
         fInput <- inputAttributesParser
         fOutput <- outputAttributeParser
         fAssignments <- many assignmentParser
-        return (MakeFunction fName (Just fDescription) fInput fOutput fAssignments)
+        return (MakeFunction fName fDescription fInput fOutput fAssignments)
 
 assignmentParser :: Parser (Expression, Expression)
 assignmentParser =
@@ -50,5 +50,5 @@ attributeParser =
         typ <- pascalNameParser <|> camelNameParser
         crd <- cardinalityParser
         desc <- optional descriptionParser
-        return $ MakeTypeAttribute nam typ crd desc
+        return $ MakeTypeAttribute nam (MakeType typ Nothing Nothing []) crd desc
         

@@ -12,18 +12,18 @@ enumParser :: Parser EnumType
 enumParser = 
     do 
         eName <- enumNameParser
-        eDescription <- descriptionParser
+        eDescription <- optional descriptionParser
         values <- many enumValueParser
-        return (MakeEnum eName (Just eDescription) values)
+        return (MakeEnum eName eDescription values)
 
 --parseTest enumValueParser "D displayName \"day\" <\"Day\">"        
 enumValueParser :: Parser EnumValue
 enumValueParser = 
     do
         vName <- nameParser
-        dName <- enumValueDisplayNameParser
-        vDescription <- descriptionParser
-        return (MakeEnumValue vName (Just vDescription) (Just dName))
+        dName <- optional enumValueDisplayNameParser
+        vDescription <- optional descriptionParser
+        return (MakeEnumValue vName vDescription dName)
 
 enumValueDisplayNameParser :: Parser String
 enumValueDisplayNameParser =

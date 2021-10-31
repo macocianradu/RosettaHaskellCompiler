@@ -2,70 +2,83 @@ module Semantic.TypeChecker where
 
 import Model.Type
 import Model.Function
+import Data.Either
+import Data.Maybe
+
+data TypeCheckError =
+    UndefinedType String
+    | IfConditionNotBoolean
+    | IfExpressionsDifferentTypes
+    | UndefinedFunction String
+    | ErrorInsideFunction
+    | UndefinedVariable String
+    | TypeMismatch String String
+    deriving (Show)
 
 data Symbol = Var{
   varName :: String,
-  declaredType :: String
+  declaredType :: Type
   }
   | Func {
   funcName :: String,
-  argsType :: [String],
-  returnType :: String
+  argsType :: [Type],
+  returnType :: Type
   }
 
 defaultMap :: [Symbol]
 defaultMap = [
-  Func "or" ["Boolean", "Boolean"] "Boolean",
-  Func "and" ["Boolean", "Boolean"] "Boolean",
-  Func "exists" ["Any"] "Boolean",
-  Func "is absent" ["Any"] "Boolean",
-  Func "single exists" ["Any"] "Boolean",
-  Func "multiple exists" ["Any"] "Boolean",
-  Func "contains" ["Any", "Any"] "Boolean",
-  Func "disjoint" ["Any", "Any"] "Boolean",
+  Func "or" [BasicType "Boolean", BasicType "Boolean"] (BasicType "Boolean"),
+  Func "and" [BasicType "Boolean", BasicType "Boolean"] (BasicType "Boolean"),
+  Func "exists" [BasicType "Any"] (BasicType "Boolean"),
+  Func "is absent" [BasicType "Any"] (BasicType "Boolean"),
+  Func "single exists" [BasicType "Any"] (BasicType "Boolean"),
+  Func "multiple exists" [BasicType "Any"] (BasicType "Boolean"),
+  Func "contains" [BasicType "Any", BasicType "Any"] (BasicType "Boolean"),
+  Func "disjoint" [BasicType "Any", BasicType "Any"] (BasicType "Boolean"),
   
-  Func "=" ["Any", "Any"] "Boolean",
-  Func ">=" ["Any", "Any"] "Boolean",
-  Func "<=" ["Any", "Any"] "Boolean",
-  Func "<>" ["Any", "Any"] "Boolean",
-  Func ">" ["Any", "Any"] "Boolean",
-  Func "<" ["Any", "Any"] "Boolean",
-  Func "all =" ["Any", "Any"] "Boolean",
-  Func "all <>" ["Any", "Any"] "Boolean",
-  Func "any =" ["Any", "Any"] "Boolean",
-  Func "any <>" ["Any", "Any"] "Boolean",
+  Func "=" [BasicType "Any", BasicType "Any"] (BasicType "Boolean"),
+  Func ">=" [BasicType "Any", BasicType "Any"] (BasicType "Boolean"),
+  Func "<=" [BasicType "Any", BasicType "Any"] (BasicType "Boolean"),
+  Func "<>" [BasicType "Any", BasicType "Any"] (BasicType "Boolean"),
+  Func ">" [BasicType "Any", BasicType "Any"] (BasicType "Boolean"),
+  Func "<" [BasicType "Any", BasicType "Any"] (BasicType "Boolean"),
+  Func "all =" [BasicType "Any", BasicType "Any"] (BasicType "Boolean"),
+  Func "all <>" [BasicType "Any", BasicType "Any"] (BasicType "Boolean"),
+  Func "any =" [BasicType "Any", BasicType "Any"] (BasicType "Boolean"),
+  Func "any <>" [BasicType "Any", BasicType "Any"] (BasicType "Boolean"),
   
-  Func "+" ["Integer", "Integer"] "Integer",
-  Func "+" ["Double", "Double"] "Double",
-  Func "-" ["Integer", "Integer"] "Integer",
-  Func "-" ["Double", "Double"] "Double",
-  Func "*" ["Integer", "Integer"] "Integer",
-  Func "*" ["Double", "Double"] "Double",
-  Func "/" ["Integer", "Integer"] "Integer",
-  Func "/" ["Double", "Double"] "Double",
-  Func "^" ["Integer", "Integer"] "Integer",
-  Func "^" ["Double", "Double"] "Double",
+  Func "+" [BasicType "Integer", BasicType "Integer"] (BasicType "Integer"),
+  Func "+" [BasicType "Double", BasicType "Double"] (BasicType "Double"),
+  Func "-" [BasicType "Integer", BasicType "Integer"] (BasicType "Integer"),
+  Func "-" [BasicType "Double", BasicType "Double"] (BasicType "Double"),
+  Func "*" [BasicType "Integer", BasicType "Integer"] (BasicType "Integer"),
+  Func "*" [BasicType "Double", BasicType "Double"] (BasicType "Double"),
+  Func "/" [BasicType "Integer", BasicType "Integer"] (BasicType "Integer"),
+  Func "/" [BasicType "Double", BasicType "Double"] (BasicType "Double"),
+  Func "^" [BasicType "Integer", BasicType "Integer"] (BasicType "Integer"),
+  Func "^" [BasicType "Double", BasicType "Double"] (BasicType "Double"),
   
-  Func "count" ["Any"] "Integer"
+  Func "count" [BasicType "Any"] (BasicType "Integer")
   ]
 
-checkAttributes :: [String] -> [TypeAttribute] -> [String]
+checkAttributes :: [Type] -> [TypeAttribute] -> [Either Type TypeCheckError]
 checkAttributes _ [] = []
 checkAttributes definedTypes ((MakeTypeAttribute _ name _ _):as) = checkType definedTypes name : checkAttributes definedTypes as 
 
-checkType :: [String] -> String -> String
-checkType _ "int" = "Integer"
-checkType _ "string" = "String"
-checkType _ "boolean" = "Bool"
-checkType _ "time" = "Time"
-checkType _ "number" = "Double"
+checkType :: [Type] -> Type -> Either Type TypeCheckError
+checkType _ (MakeType "int" _ _ _) = Left $ BasicType "Integer"
+checkType _ (MakeType "string" _ _ _) = Left $ BasicType "String"
+checkType _ (MakeType "number" _ _ _) = Left $ BasicType "Double"
+checkType _ (MakeType "boolean" _ _ _) = Left $ BasicType "Bool"
+checkType _ (MakeType "time" _ _ _) = Left $ BasicType "Time"
 checkType definedTypes name
-    | name `elem` definedTypes = name
-    | otherwise = error "Undefined type: " ++ name
+    | name `elem` definedTypes = Left name
+    | otherwise = Right $ UndefinedType (typeName name)
   
-addDefinedTypes :: [String] -> [Type] -> [String]
+addDefinedTypes :: [Type] -> [Type] -> [Type]
 addDefinedTypes l [] = l
-addDefinedTypes l ((MakeType name _ _):ts) = name : addDefinedTypes l ts
+addDefinedTypes l (BasicType _ : ts) = addDefinedTypes l ts
+addDefinedTypes l (t:ts) = t : addDefinedTypes l ts
 
 --Variable String
 --    | Int String
@@ -81,46 +94,65 @@ addDefinedTypes l ((MakeType name _ _):ts) = name : addDefinedTypes l ts
 --    | IfSimple Expression Expression
 --    | IfElse Expression Expression Expression
     
-checkExpression :: [Symbol] -> Expression -> String
-checkExpression symbolMap (Variable var) = findVar var symbolMap
-checkExpression _ (Int _) = "Integer"
-checkExpression _ (Real _) = "Double"
-checkExpression _ (Boolean _) = "Boolean"
-checkExpression _ Empty = "Empty"
+checkExpression :: [Symbol] -> Expression -> Either Type TypeCheckError
+checkExpression symbolMap (Variable var) = findVarType var symbolMap
+checkExpression _ (Int _) = Left $ BasicType "Integer"
+checkExpression _ (Real _) = Left $ BasicType "Double"
+checkExpression _ (Boolean _) = Left $ BasicType "Boolean"
+checkExpression _ Empty = Left $ BasicType "Empty"
 checkExpression symbolMap (Parens ex) = checkExpression symbolMap ex
-checkExpression _ (List _) = "List" 
+--TODO check list has same type
+checkExpression _ (List _) = Left $ BasicType "List" 
 checkExpression symbolMap (PrefixExp name ex) = checkFunctionCall symbolMap name [checkExpression symbolMap ex]
 checkExpression symbolMap (Function name exps) = checkFunctionCall symbolMap name (map (checkExpression symbolMap) exps)
 checkExpression symbolMap (PostfixExp name ex) = checkFunctionCall symbolMap name [checkExpression symbolMap ex]
 checkExpression symbolMap (InfixExp name ex1 ex2) = checkFunctionCall symbolMap name (checkExpression symbolMap ex1: [checkExpression symbolMap ex2])
 checkExpression symbolMap (IfSimple cond ex)
-    | condType == "Boolean" = checkExpression symbolMap ex
-    | otherwise = error "Expected boolean condition in if statement"
+    | isLeft condType && isLeft (typeMatch (fromLeftUnsafe condType) (BasicType "Boolean")) = checkExpression symbolMap ex
+    | otherwise = Right IfConditionNotBoolean
     where condType = checkExpression symbolMap cond
 checkExpression symbolMap (IfElse cond ex1 ex2)
-    | condType /= "Boolean" = error "Expected boolean condition in if statement" 
-    | not (typeMatch ex1Type ex2Type) = error "Types of then and else branches don't match"
+    | isRight condType || isRight (typeMatch (fromLeftUnsafe condType) (BasicType "Boolean")) = Right IfConditionNotBoolean 
+    | isRight ex1Type || isRight ex2Type || isRight (typeMatch (fromLeftUnsafe ex1Type) (fromLeftUnsafe ex2Type)) = Right IfExpressionsDifferentTypes
     | otherwise = ex1Type
     where   condType = checkExpression symbolMap cond
             ex1Type = checkExpression symbolMap ex1
             ex2Type = checkExpression symbolMap ex2
-    
 
-checkFunctionCall :: [Symbol] -> String -> [String] -> String
-checkFunctionCall [] fun args = error "Undefined function: " ++ fun ++ concat args
+checkFunctionCall :: [Symbol] -> String -> [Either Type TypeCheckError] -> Either Type TypeCheckError
+checkFunctionCall [] fun args = Right $ UndefinedFunction $ "Undefined function: " ++ fun ++ concatMap typeName (lefts args)
 checkFunctionCall ((Func n a r):symbolMap) name args
-    | name == n && and (zipWith typeMatch a args) = r
+    | length left /= length args = Right ErrorInsideFunction
+    | name == n && all isLeft (zipWith typeMatch a left) = Left r
     | otherwise = checkFunctionCall symbolMap name args
+    where left = lefts args
 checkFunctionCall (_:symbolMap) name args = checkFunctionCall symbolMap name args 
 
-typeMatch :: String -> String -> Bool
-typeMatch "Any" _ = True
-typeMatch _ "Any" = True
-typeMatch s s2 = s == s2
+--Try to match 2nd type to first type
+typeMatch :: Type -> Type -> Either Type TypeCheckError
+typeMatch (BasicType "Any") x = Left x
+typeMatch (BasicType "Double") (BasicType "Integer") = Left $ BasicType "Dobule"
+typeMatch s (BasicType s2)
+    | s == BasicType s2 = Left s
+    | otherwise = Right $ TypeMismatch (typeName s) s2
+typeMatch s s2
+    | s == s2 = Left s
+    | isJust $ superType s2 = typeMatch s (fromJust $ superType s2)
+    | otherwise = Right $ TypeMismatch (typeName s) (typeName s2)
 
-findVar :: String -> [Symbol] -> String
-findVar var [] = error "Undefined variable " ++ var
-findVar x ((Var name typ):symbols) 
-    | x == name = typ
-    | otherwise = findVar x symbols
-findVar x (_:symbols) = findVar x symbols
+findVarType :: String -> [Symbol] -> Either Type TypeCheckError
+findVarType var [] = Right $ UndefinedVariable var
+findVarType x ((Var name typ):symbols) 
+    | x == name = Left typ
+    | otherwise = findVarType x symbols
+findVarType x (_:symbols) = findVarType x symbols
+
+fromRightUnsafe :: Either a b -> b
+fromRightUnsafe x = case x of
+    Left _ -> error "Value is Left"
+    Right b -> b
+    
+fromLeftUnsafe :: Either a b -> a
+fromLeftUnsafe x = case x of
+    Left a -> a
+    Right _ -> error "Value is Right"

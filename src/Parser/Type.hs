@@ -12,9 +12,18 @@ typeParser :: Parser Type
 typeParser = 
     do 
         tName <- typeNameParser
-        tDescription <- descriptionParser
+        tSuper <- optional superTypeParser
+        _ <- lexeme $ char ':'
+        tDescription <- optional descriptionParser
         tAttributes <- many $ try typeAttributeParser
-        return (MakeType tName (Just tDescription) tAttributes)
+        return (MakeType tName tSuper tDescription tAttributes)
+
+superTypeParser :: Parser Type
+superTypeParser =
+    do
+        _ <- lexeme $ string "extending"
+        name <- pascalNameParser 
+        return $ MakeType name Nothing Nothing []
 
 typeAttributeParser :: Parser TypeAttribute
 typeAttributeParser = 
@@ -23,7 +32,7 @@ typeAttributeParser =
         aType <- nameParser
         card <- cardinalityParser
         desc <- optional descriptionParser
-        return (MakeTypeAttribute aName aType card desc)
+        return (MakeTypeAttribute aName (MakeType aType Nothing Nothing []) card desc)
 
 cardinalityParser :: Parser Cardinality
 cardinalityParser =
@@ -61,23 +70,22 @@ typeNameParser :: Parser String
 typeNameParser = 
     do
         _ <- lexeme $ string "type"
-        name <- pascalNameParser
-        _ <- lexeme $ char ':'
-        return name 
-
+        pascalNameParser
+        
 periodType :: Type
 periodType = MakeType 
     "Period" 
+    Nothing
     (Just "A class to define recurring periods or time offsets")
     [MakeTypeAttribute 
         "periodMultiplier"
-        "Integer"
+        (BasicType "Integer")
         ExactlyOne
         (Just "A time period multiplier"),
     
     MakeTypeAttribute 
         "period"
-        "periodEnum"
+        (MakeType "PeriodEnum" Nothing Nothing [])
         ExactlyOne
         (Just "A time period")
     ]

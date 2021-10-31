@@ -66,36 +66,42 @@ testFunc = do
                 writeFile "src/TestFiles/functionTest.hs" (show $ printFunctionSignature fun) 
            
 testExpTypeChecker :: IO ()
-testExpTypeChecker = print $ mapExpsToTypes expressions
+testExpTypeChecker = putStrLn $ printOnOneLine $ mapExpsToTypes expressions
                 
 mapExpsToTypes :: [String] -> [(String, String)]
 mapExpsToTypes [] = []
 mapExpsToTypes (expr: exps) = do
     case parse expressionParser "" (Text.pack expr) of
         Left errorBundle -> error (errorBundlePretty errorBundle)
-        Right ex -> (show ex, checkExpression defaultMap ex) :mapExpsToTypes exps
+        Right ex -> (show ex, show $ checkExpression defaultMap ex) :mapExpsToTypes exps
+        
+printOnOneLine :: [(String, String)] -> String
+printOnOneLine [] = ""
+printOnOneLine ((ex, typ): exps) = "(" ++ ex ++ "," ++ typ ++ ")\n" ++ printOnOneLine exps 
             
 expressions :: [String]
 expressions = [
   --Or Good
   "True or False",
---  --Or Bad
---  "1 or False",
+  --Or Bad
+  "1 or False",
   --And Good
   "False and False",
---  --And Bad
---  "1 and 2",
+  --And Bad
+  "1 and 2",
   --Exists Good
   "a exists",
   --Plus Good
   "1.2 + 2.3",
---  --Plus Bad
---  "True + 2",
+  "1 + 2.3",
+  "1 + 2",
+  --Plus Bad
+  "True + 2",
   --If Good
   "if True then 2 else 3",
---  --If Bad Cond
---  "if 2 then True else False",
+  --If Bad Cond
+  "if 2 then True else False",
   --If Bad exps
---  "if True then 2 else False"
-    "if True or False then 24 + 15 else 55 + 98 + 35 + 34"
+  "if True then 2 else False",
+  "if True or False then 24 + 15 else 55 + 98 + 35 + 34"
   ]
