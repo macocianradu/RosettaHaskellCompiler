@@ -75,7 +75,7 @@ integerParser :: Parser Expression
 integerParser =
     do
         nr <- lexeme $ some digitChar
-        return $ Int $ show nr
+        return $ Int nr
         
 decimalParser :: Parser Expression
 decimalParser =
@@ -83,7 +83,7 @@ decimalParser =
         nr <- some digitChar
         _ <- char '.'
         real <- lexeme $ many digitChar
-        return $ Real $ show nr ++ "." ++ real
+        return $ Real $ nr ++ "." ++ real
         
 booleanParser :: Parser Expression
 booleanParser =
@@ -203,17 +203,3 @@ precedence _ = 100
 
 prefixOperators :: [String]
 prefixOperators = ["-", "not"]
-
-testArith3 = parseTest expressionParser "1 + (2 - 3)"
-testArith4 = parseTest expressionParser "a * b - c * d - e * f = g * h - i * j - k * l"
-testArith5 = parseTest expressionParser "a + b - c * d ^ e"
-testArith6 = parseTest expressionParser "1 - 2 - 3 - 4 - 5 - 6"
-testList = parseTest expressionParser "[1, 2, 3]"
-testList2 = parseTest expressionParser "[1, 2 + 3, e]"
-testFun = parseTest functionCallParser "Function()"
-testFun2 = parseTest functionCallParser "Function(e)"
-testFun3 = parseTest functionCallParser "Function(3, 3+2,e)"
-testIf = parseTest expressionParser "if (Function(2 + 3, e)) then a + b - c * d ^ e -> x else not a exists"
-testEverything = parseTest expressionParser "if [1, Function(3)] then 1 - 2 - 3 * a -> b ^ c"
-testFail = parseTest expressionParser "if[1,as]thenxandoelseaora"
-testOr = parseTest expressionParser "a or b"

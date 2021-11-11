@@ -1,0 +1,3 @@
+enum Wrong3::
+    A <"asd"> displayName "dsa"
+    B <"xyz"> displayName "zyx"

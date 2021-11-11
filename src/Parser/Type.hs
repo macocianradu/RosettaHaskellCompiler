@@ -7,7 +7,6 @@ import Text.Megaparsec.Char
 import Text.Megaparsec
 import Parser.General 
   
---parseTest typeParser "type Period: <\"description\"> periodMultiplier int (1..1) <\"A time period multiplier\"> period periodEnum (1..1) <\"A time period \">"
 typeParser :: Parser Type
 typeParser = 
     do 
@@ -21,7 +20,7 @@ typeParser =
 superTypeParser :: Parser Type
 superTypeParser =
     do
-        _ <- lexeme $ string "extending"
+        _ <- lexeme $ string "extends"
         name <- pascalNameParser 
         return $ MakeType name Nothing Nothing []
 
@@ -37,55 +36,36 @@ typeAttributeParser =
 cardinalityParser :: Parser Cardinality
 cardinalityParser =
     do
-        parseExactlyOne <|> parseOneOrMore <|> parseZeroOrMore <|> parseZeroOrOne
+        try parseBounded <|> try parseSemiBounded <|> try parseUnbounded
 
-parseOneOrMore :: Parser Cardinality
-parseOneOrMore = 
+parseBounded :: Parser Cardinality
+parseBounded = 
     do
-        _ <- lexeme $ string "(1..*)"
-        return OneOrMore
+        _ <- lexeme $ char '('
+        low <- lexeme $ many digitChar
+        _ <- lexeme $ string ".."
+        up <- lexeme $ many digitChar
+        _ <- lexeme $ char ')'
+        return $ Bounds (read low, read up)
 
 
-parseExactlyOne :: Parser Cardinality
-parseExactlyOne = 
+parseSemiBounded :: Parser Cardinality
+parseSemiBounded = 
     do
-        _ <- lexeme $ string "(1..1)"
-        return ExactlyOne
+        _ <- lexeme $ char '('
+        low <- lexeme $ many digitChar
+        _ <- lexeme $ string "..*)"
+        return $ OneBound $ read low
         
         
-parseZeroOrMore :: Parser Cardinality
-parseZeroOrMore = 
+parseUnbounded :: Parser Cardinality
+parseUnbounded = 
     do
-        _ <- lexeme $ string "(0..*)"
-        return ZeroOrMore
-        
-        
-parseZeroOrOne :: Parser Cardinality
-parseZeroOrOne = 
-    do
-        _ <- lexeme $ string "(0..1)"
-        return ZeroOrOne
+        _ <- lexeme $ string "(*..*)"
+        return NoBounds
 
 typeNameParser :: Parser String
 typeNameParser = 
     do
         _ <- lexeme $ string "type"
         pascalNameParser
-        
-periodType :: Type
-periodType = MakeType 
-    "Period" 
-    Nothing
-    (Just "A class to define recurring periods or time offsets")
-    [MakeTypeAttribute 
-        "periodMultiplier"
-        (BasicType "Integer")
-        ExactlyOne
-        (Just "A time period multiplier"),
-    
-    MakeTypeAttribute 
-        "period"
-        (MakeType "PeriodEnum" Nothing Nothing [])
-        ExactlyOne
-        (Just "A time period")
-    ]

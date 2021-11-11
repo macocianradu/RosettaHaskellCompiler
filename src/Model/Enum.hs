@@ -4,10 +4,10 @@ data EnumType = MakeEnum {
     enumName :: String,
     enumDescription :: Maybe String,
     enumValues :: [EnumValue]
-} deriving (Show)
+} deriving (Show, Eq)
 
 data EnumValue = MakeEnumValue {
     enumValueName :: String,
     enumValueDescription :: Maybe String,
     enumValueDisplayName :: Maybe String
-} deriving (Show)
+} deriving (Show, Eq)

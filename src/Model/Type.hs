@@ -30,9 +30,7 @@ data TypeAttribute = MakeTypeAttribute {
 } deriving (Show)
 
 --TODO use bounded class
-data Cardinality = 
-    ZeroOrOne
-    | ExactlyOne
-    | OneOrMore             -- One or more
-    | ZeroOrMore            -- Zero or more
-    deriving (Show)
+data Cardinality = Bounds (Integer, Integer)
+  | OneBound Integer
+  | NoBounds 
+  deriving Show

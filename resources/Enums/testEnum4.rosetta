@@ -1,0 +1,3 @@
+enum Wrong:
+    A <"asd"> displayName "dsa"
+    B <"xyz"> displayName "zyx"

@@ -1,0 +1,3 @@
+enum Wrong2
+    A <"asd"> displayName "dsa"
+    B <"xyz"> displayName "zyx"

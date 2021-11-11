@@ -8,10 +8,9 @@ import Text.Megaparsec
 import PrettyPrinter.Enum
 import PrettyPrinter.Type
 import PrettyPrinter.Function
-import Parser.Expression
 import Semantic.TypeChecker
 import Model.Function
-import Model.Type (typeAttributes)
+import Model.Type
 
 main :: IO ()
 main = do
@@ -25,24 +24,24 @@ main = do
 
 testEnum :: IO()
 testEnum = do
-    rosettaString <- readFile "src/TestFiles/testEnum.rosetta"
+    rosettaString <- readFile "resources/Enums/testEnum5.rosetta"
     case parse enumParser "" (Text.pack rosettaString) of
-        Left errorBundle -> print (errorBundlePretty errorBundle)
+        Left errorBundle -> print errorBundle
         Right enum -> 
             do
                 putStrLn $ printEnum enum
-                writeFile "src/TestFiles/typeEnum.hs" (printEnum enum) 
+                writeFile "resources/Generated/generatedEnum.hs" (printEnum enum) 
         
 testTypeParser :: IO()
 testTypeParser = do
-    rosettaString <- readFile "src/TestFiles/testType.rosetta"
+    rosettaString <- readFile "resources/Types/testType1.rosetta"
     case parse typeParser "" (Text.pack rosettaString) of
         Left errorBundle -> print (errorBundlePretty errorBundle)
         Right typ -> 
             do
                 putStrLn $ printType typ
                 print typ
-                writeFile "src/TestFiles/typeTest.hs" (printType typ) 
+                writeFile "resources/Generated/generatedType.hs" (printType typ) 
               
 testTypeChecker :: IO ()
 testTypeChecker = do
@@ -56,52 +55,11 @@ testTypeChecker = do
                 
 testFunc :: IO()
 testFunc = do
-    rosettaString <- readFile "src/TestFiles/testFunction.rosetta"
+    rosettaString <- readFile "resources/testFunction.rosetta"
     case parse functionParser "" (Text.pack rosettaString) of
         Left errorBundle -> print (errorBundlePretty errorBundle)
         Right fun -> 
             do
                 print $ printFunctionSignature fun
                 print (assignments fun)
-                writeFile "src/TestFiles/functionTest.hs" (show $ printFunctionSignature fun) 
-           
-testExpTypeChecker :: IO ()
-testExpTypeChecker = putStrLn $ printOnOneLine $ mapExpsToTypes expressions
-                
-mapExpsToTypes :: [String] -> [(String, String)]
-mapExpsToTypes [] = []
-mapExpsToTypes (expr: exps) = do
-    case parse expressionParser "" (Text.pack expr) of
-        Left errorBundle -> error (errorBundlePretty errorBundle)
-        Right ex -> (show ex, show $ checkExpression defaultMap ex) :mapExpsToTypes exps
-        
-printOnOneLine :: [(String, String)] -> String
-printOnOneLine [] = ""
-printOnOneLine ((ex, typ): exps) = "(" ++ ex ++ "," ++ typ ++ ")\n" ++ printOnOneLine exps 
-            
-expressions :: [String]
-expressions = [
-  --Or Good
-  "True or False",
-  --Or Bad
-  "1 or False",
-  --And Good
-  "False and False",
-  --And Bad
-  "1 and 2",
-  --Exists Good
-  "a exists",
-  --Plus Good
-  "1.2 + 2.3",
-  "1 + 2.3",
-  "1 + 2",
-  --Plus Bad
-  "True + 2",
-  --If Good
-  "if True then 2 else 3",
-  --If Bad Cond
-  "if 2 then True else False",
-  --If Bad exps
-  "if True then 2 else False",
-  "if True or False then 24 + 15 else 55 + 98 + 35 + 34"
-  ]
+                writeFile "resources/Generated/generatedFunction.hs" (show $ printFunctionSignature fun) 

@@ -1,0 +1,4 @@
+enum EnumWithoutDisplay: <"The enumerated values to specified the period, e.g. day, week.">
+    D <"Day">
+    M <"Month">
+    Y <"Year">

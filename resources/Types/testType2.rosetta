@@ -1,0 +1,2 @@
+type TestType:
+    periodMultiplier int (1..1)

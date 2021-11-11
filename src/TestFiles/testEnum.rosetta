@@ -1,4 +1,0 @@
-enum PeriodEnum: <"description">
-    D displayName "day" <"Day">
-    M displayName "month" <"Month">
-    Y displayName "year" <"Year">

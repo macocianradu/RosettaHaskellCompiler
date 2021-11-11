@@ -12,16 +12,16 @@ data Function =
     }
     deriving (Show)
     
-data Condition =
-    MakeCondition {
-        conditionDescription :: Maybe String,
-        conditionStatement :: Expression
-    }
-    | MakePostCondition {
-        conditionDescription :: Maybe String,
-        conditionStatement :: Expression
-    }
-    deriving (Show)
+--data Condition =
+--    MakeCondition {
+--        conditionDescription :: Maybe String,
+--        conditionStatement :: Expression
+--    }
+--    | MakePostCondition {
+--        conditionDescription :: Maybe String,
+--        conditionStatement :: Expression
+--    }
+--    deriving (Show)
      
 data Expression = Variable String
     | Int String
@@ -36,4 +36,4 @@ data Expression = Variable String
     | InfixExp String Expression Expression
     | IfSimple Expression Expression
     | IfElse Expression Expression Expression
-    deriving (Show)
+    deriving (Eq, Show)

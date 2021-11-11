@@ -1,0 +1,4 @@
+enum PeriodEnum: <"The enumerated values to specified the period, e.g. day, week.">
+    D displayName "day" <"Day">
+    M displayName "month" <"Month">
+    Y displayName "year" <"Year">

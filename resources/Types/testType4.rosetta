@@ -1,0 +1,2 @@
+type TestZeroOneType extends Period:
+    periodMultiplier int (1..1)

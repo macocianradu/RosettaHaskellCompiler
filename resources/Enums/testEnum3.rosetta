@@ -1,0 +1,3 @@
+enum EnumWithoutDescription:
+    X displayName "xs"
+    Y displayName "ys"

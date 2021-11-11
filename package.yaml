@@ -1,10 +1,10 @@
 name:                RosettaParser
 version:             0.1.0.0
-github:              "githubuser/RosettaParser"
+github:              "macocianradu/RosettaParser"
 license:             BSD3
-author:              "Author name here"
-maintainer:          "example@example.com"
-copyright:           "2021 Author name here"
+author:              "Adrian Radu Macocian"
+maintainer:          "rmacocian@gmail.com"
+copyright:           "2021 Adrian Radu Macocian"
 
 extra-source-files:
 - README.md
@@ -17,7 +17,7 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/githubuser/RosettaParser#readme>
+description:         Please see the README on GitHub at <https://github.com/macocianradu/RosettaParser#readme>
 
 dependencies:
 - base >= 4.7 && < 5
@@ -41,6 +41,9 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - RosettaParser
+    when:
+    - condition: false
+      other-modules: Paths_RosettaParser
 
 tests:
   RosettaParser-test:
@@ -52,3 +55,5 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - RosettaParser
+    - hspec-megaparsec
+    - hspec
