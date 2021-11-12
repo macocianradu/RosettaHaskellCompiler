@@ -193,7 +193,7 @@ reverseExpression e = e
 
 precedence :: String -> Int
 precedence "or" = 1
-precedence "and" = 1
+precedence "and" = 10
 precedence "+" = 2
 precedence "-" = 2
 precedence "*" = 3

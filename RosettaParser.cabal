@@ -27,6 +27,7 @@ library
   exposed-modules:
       Model.Enum
       Model.Function
+      Model.RosettaObject
       Model.Type
       Parser.Enum
       Parser.Expression
@@ -36,6 +37,7 @@ library
       PrettyPrinter.Enum
       PrettyPrinter.Function
       PrettyPrinter.General
+      PrettyPrinter.RosettaObject
       PrettyPrinter.Type
       Semantic.ExpressionChecker
       Semantic.TypeChecker

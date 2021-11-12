@@ -51,7 +51,21 @@ defaultMap = [
   
   Func "count" [BasicType "Any"] (BasicType "Integer")
   ]
-    
+
+addFunction :: ([Type], [Symbol]) -> Function -> Either [TypeCheckError] [Symbol]
+addFunction (definedTypes, definedSymbols) (MakeFunction name _ inps out _)
+    | null (lefts checkedInputs) && isRight checkedOutput = Right $ Func name (map attributeType (rights checkedInputs)) (attributeType $ fromRightUnsafe checkedOutput) : allSymbols
+    | isLeft checkedOutput = Left [fromLeftUnsafe checkedOutput]
+    | otherwise = Left $  lefts checkedInputs 
+    where 
+        checkedInputs = checkAttributes definedTypes inps
+        checkedOutput = head $ checkAttributes definedTypes [out]
+        allSymbols = addVariables definedSymbols inps
+        
+addVariables :: [Symbol] -> [TypeAttribute] -> [Symbol]
+addVariables s [] = s
+addVariables s ((MakeTypeAttribute name typ _ _)  : vars) = Var name typ : addVariables s vars
+        
 checkExpression :: [Symbol] -> Expression -> Either TypeCheckError Type
 checkExpression symbolMap (Variable var) = findVarType var symbolMap
 checkExpression _ (Int _) = Right $ BasicType "Integer"
@@ -65,7 +79,7 @@ checkExpression symbolMap (Function name exps) = checkFunctionCall symbolMap nam
 checkExpression symbolMap (PostfixExp name ex) = checkFunctionCall symbolMap name [checkExpression symbolMap ex]
 checkExpression symbolMap (InfixExp name ex1 ex2) = checkFunctionCall symbolMap name (checkExpression symbolMap ex1: [checkExpression symbolMap ex2])
 checkExpression symbolMap (IfSimple cond ex)
-    | isLeft condType && isLeft (typeMatch (fromRightUnsafe condType) (BasicType "Boolean")) = checkExpression symbolMap ex
+    | isRight condType && isRight (typeMatch (fromRightUnsafe condType) (BasicType "Boolean")) = checkExpression symbolMap ex
     | otherwise = Left IfConditionNotBoolean
     where condType = checkExpression symbolMap cond
 checkExpression symbolMap (IfElse cond ex1 ex2)
@@ -95,7 +109,7 @@ checkList1 symbs (ex : exps) typ
 checkFunctionCall :: [Symbol] -> String -> [Either TypeCheckError Type] -> Either TypeCheckError Type
 checkFunctionCall [] fun args = Left $ UndefinedFunction $ "Undefined function: \"" ++ fun ++ "\" [" ++ concatMap typeName (rights args) ++ "]"
 checkFunctionCall ((Func n a r):symbolMap) name args
-    | length right /= length args = Left ErrorInsideFunction
+    | length right /= length args = Left $ ErrorInsideFunction (name ++ ": " ++ show args)
     | name == n && all isRight (zipWith typeMatch a right) = Right r
     | otherwise = checkFunctionCall symbolMap name args
     where right = rights args
@@ -119,13 +133,3 @@ findVarType x ((Var name typ):symbols)
     | x == name = Right typ
     | otherwise = findVarType x symbols
 findVarType x (_:symbols) = findVarType x symbols
-
-fromRightUnsafe :: Either a b -> b
-fromRightUnsafe x = case x of
-    Left _ -> error "Value is Left"
-    Right b -> b
-    
-fromLeftUnsafe :: Either a b -> a
-fromLeftUnsafe x = case x of
-    Left a -> a
-    Right _ -> error "Value is Right"

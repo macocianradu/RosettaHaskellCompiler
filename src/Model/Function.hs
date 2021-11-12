@@ -8,7 +8,7 @@ data Function =
         functionDescription :: Maybe String,
         inputParameters :: [TypeAttribute],
         outputParameter :: TypeAttribute,
-        assignments :: [(Expression, Expression)]
+        assignment :: Expression
     }
     deriving (Show)
     

@@ -27,19 +27,33 @@ pascalNameParser :: Parser String
 pascalNameParser =
     do
         first <- upperChar
-        rest <- lexeme $ many (letterChar <|> digitChar <|> char '_')
-        return (first : rest)
+        rest <- lexeme $ many allowedChars
+        if first:rest `notElem` restrictedNames then return (first:rest) else fail ((first:rest) ++ " is a restricted name")
 
 camelNameParser :: Parser String
 camelNameParser =
     do
         first <- lowerChar
-        rest <- lexeme $ many (letterChar <|> digitChar <|> char '_')
-        return (first : rest)
+        rest <- lexeme $ many allowedChars
+        if first:rest `notElem` restrictedNames then return (first:rest) else fail ((first:rest) ++ " is a restricted name")
 
 nameParser :: Parser String
 nameParser = 
     do 
         first <- letterChar <|> char '_'
-        rest <- lexeme $ many (letterChar <|> digitChar <|> char '_')
-        return (first:rest)
+        rest <- lexeme $ many allowedChars
+        if first:rest `notElem` restrictedNames then return (first:rest) else fail ((first:rest) ++ " is a restricted name")
+
+allowedChars :: Parser Char
+allowedChars = letterChar <|> digitChar <|> char '_'
+        
+restrictedNames :: [String]
+restrictedNames = [
+    "displayName",
+    "enum",
+    "func",
+    "type",
+    "extends",
+    "inputs",
+    "output"
+  ]

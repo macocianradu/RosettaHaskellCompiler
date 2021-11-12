@@ -9,6 +9,9 @@ import PrettyPrinter.Type
   
 -- show printStatementTree 
 
+printFunction :: Function -> String
+printFunction = show . printFunctionSignature
+
 printFunctionSignature :: Function -> Doc a
 printFunctionSignature (MakeFunction name description inputs output _) =
     printDescription description (pretty name <+> prettyPrintType (Prelude.map printCardinality (inputs ++ [output])))

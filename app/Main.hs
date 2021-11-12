@@ -3,28 +3,84 @@ module Main where
 import Parser.Enum
 import Parser.Type
 import Parser.Function
+import Parser.General
+import Model.RosettaObject
 import qualified Data.Text as Text
 import Text.Megaparsec
 import PrettyPrinter.Enum
 import PrettyPrinter.Type
 import PrettyPrinter.Function
 import Semantic.TypeChecker
+import Semantic.ExpressionChecker
 import Model.Function
 import Model.Type
+import System.Environment.Blank (getArgs)
+import Model.Enum
+import Data.Either
 
+-- :set args resources/testAll.rosetta resources/Generated/testAll.hs
 main :: IO ()
 main = do
-    rosettaString <- readFile "app/testFile.rosetta"
-    putStrLn "rosetta String: " 
-    putStrLn rosettaString
-    putStrLn "\nFinal enum: \n"
-    case parse enumParser "" (Text.pack rosettaString) of
+    args <- getArgs
+    rosettaString <- readFile $ head args
+    case parse rosettaParser "" (Text.pack rosettaString) of
         Left errorBundle -> print (errorBundlePretty errorBundle)
-        Right enum -> putStrLn $ printEnum enum
+        Right objs -> do
+            putStrLn $ printObjects (definedTypes, definedFunctions) objs
+            where 
+                definedFunctions = addNewFunctions (definedTypes, defaultMap) objs
+                definedTypes = addNewTypes [] objs
+      
+printObjects :: ([Type], [Symbol]) -> [RosettaObject] -> String
+printObjects (t, s) objs
+    | null (lefts finalString) = concat $ rights finalString
+    | otherwise = error $ show $ lefts finalString
+    where finalString = map (printObject (t, s)) objs  
+                    
+printObject :: ([Type], [Symbol]) -> RosettaObject -> Either [TypeCheckError] String
+printObject (definedTypes, _) (TypeObject t)
+    | isRight checked = Right $ printType t
+    | otherwise = Left $ fromLeftUnsafe checked
+    where checked = checkType definedTypes t
+printObject _ (EnumObject e) = Right $ printEnum e
+printObject (_, definedFunctions) (FunctionObject (MakeFunction name desc inp out ex))
+    | isRight checked = Right $ printFunction (MakeFunction name desc inp out ex)
+    | otherwise = Left [fromLeftUnsafe checked]
+    where 
+        checked = checkExpression definedFunctions ex
+
+addNewFunctions :: ([Type], [Symbol]) -> [RosettaObject] -> [Symbol]
+addNewFunctions (_, s) [] = s
+addNewFunctions (t, s) ((FunctionObject f):os)
+    | isRight definedFunctions = fromRightUnsafe definedFunctions
+    | otherwise = error $ show $ fromLeftUnsafe definedFunctions
+    where definedFunctions = addFunction (t, addNewFunctions (t, s) os) f
+addNewFunctions (t, s) (_:os) = addNewFunctions (t, s) os
+
+addNewTypes :: [Type] -> [RosettaObject] -> [Type]
+addNewTypes l [] = l
+addNewTypes defined (TypeObject o: os) = addDefinedTypes (addNewTypes defined os) [o] 
+addNewTypes defined (EnumObject (MakeEnum name _ _): os) = addDefinedTypes (addNewTypes defined os) [MakeType name Nothing Nothing []]
+addNewTypes defined (_ :os) = addNewTypes defined os
+
+rosettaParser :: Parser [RosettaObject]
+rosettaParser = many (try parseEnum <|> try parseType <|> try parseFunction) <* eof
+
+parseEnum :: Parser RosettaObject
+parseEnum = do
+    EnumObject <$> enumParser
+    
+parseType :: Parser RosettaObject
+parseType = do
+    TypeObject <$> typeParser
+    
+parseFunction :: Parser RosettaObject
+parseFunction = do
+    FunctionObject <$> functionParser
 
 testEnum :: IO()
 testEnum = do
-    rosettaString <- readFile "resources/Enums/testEnum5.rosetta"
+    rosettaString <- readFile "resources/Enums/testEnum1.rosetta"
     case parse enumParser "" (Text.pack rosettaString) of
         Left errorBundle -> print errorBundle
         Right enum -> 
@@ -61,5 +117,5 @@ testFunc = do
         Right fun -> 
             do
                 print $ printFunctionSignature fun
-                print (assignments fun)
+                print (assignment fun)
                 writeFile "resources/Generated/generatedFunction.hs" (show $ printFunctionSignature fun) 

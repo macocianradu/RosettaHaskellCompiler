@@ -14,22 +14,19 @@ functionParser :: Parser Function
 functionParser =
     do
         _ <- lexeme $ string "func"
-        fName <- pascalNameParser
+        fName <- try pascalNameParser
         _ <- lexeme $ char ':'
         fDescription <- optional descriptionParser
         fInput <- inputAttributesParser
         fOutput <- outputAttributeParser
-        fAssignments <- many assignmentParser
-        return (MakeFunction fName fDescription fInput fOutput fAssignments)
+        MakeFunction fName fDescription fInput fOutput <$> assignmentParser
 
-assignmentParser :: Parser (Expression, Expression)
+assignmentParser :: Parser Expression
 assignmentParser =
     do
         _ <- lexeme $ string "assign-output"
-        name <- expressionParser
         _ <- lexeme $ char ':'
-        expr <- expressionParser
-        return (name, expr)
+        expressionParser
 
 inputAttributesParser :: Parser [TypeAttribute]
 inputAttributesParser =
@@ -46,8 +43,8 @@ outputAttributeParser =
 attributeParser :: Parser TypeAttribute
 attributeParser =
     do
-        nam <- camelNameParser 
-        typ <- pascalNameParser <|> camelNameParser
+        nam <- try camelNameParser 
+        typ <- try (pascalNameParser <|> camelNameParser)
         crd <- cardinalityParser
         desc <- optional descriptionParser
         return $ MakeTypeAttribute nam (MakeType typ Nothing Nothing []) crd desc

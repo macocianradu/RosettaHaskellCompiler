@@ -29,7 +29,6 @@ data TypeAttribute = MakeTypeAttribute {
     attributeDescription :: Maybe String
 } deriving (Show)
 
---TODO use bounded class
 data Cardinality = Bounds (Integer, Integer)
   | OneBound Integer
   | NoBounds 

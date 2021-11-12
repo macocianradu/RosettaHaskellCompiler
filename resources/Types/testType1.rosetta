@@ -1,4 +1,4 @@
-type Period: <"description">
+type Period extends Something: <"description">
     periodMultiplier int (1..1) <"A time period multiplier, e.g. 1, 2 or 3 etc. A negative value can be used when specifying an offset relative to another date, e.g. -2 days.">
     testMany TestType (0..*) <"Test many">
     testSome TestSomeType (1..*) <"Test some">

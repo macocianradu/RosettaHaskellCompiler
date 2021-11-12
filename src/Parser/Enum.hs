@@ -10,7 +10,7 @@ import Model.Enum
 enumParser :: Parser EnumType
 enumParser = 
     do 
-        eName <- enumNameParser
+        eName <- try enumNameParser
         eDescription <- optional descriptionParser
         values <- some enumValueParser
         return (MakeEnum eName eDescription values)
@@ -18,7 +18,7 @@ enumParser =
 enumValueParser :: Parser EnumValue
 enumValueParser = 
     do
-        vName <- nameParser
+        vName <- try nameParser
         dName <- optional enumValueDisplayNameParser
         vDescription <- optional descriptionParser
         return (MakeEnumValue vName vDescription dName)

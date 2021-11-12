@@ -10,7 +10,7 @@ import Parser.General
 typeParser :: Parser Type
 typeParser = 
     do 
-        tName <- typeNameParser
+        tName <- try typeNameParser
         tSuper <- optional superTypeParser
         _ <- lexeme $ char ':'
         tDescription <- optional descriptionParser
@@ -27,8 +27,8 @@ superTypeParser =
 typeAttributeParser :: Parser TypeAttribute
 typeAttributeParser = 
     do
-        aName <- camelNameParser
-        aType <- nameParser
+        aName <- try camelNameParser
+        aType <- try nameParser
         card <- cardinalityParser
         desc <- optional descriptionParser
         return (MakeTypeAttribute aName (MakeType aType Nothing Nothing []) card desc)
