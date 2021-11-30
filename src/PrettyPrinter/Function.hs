@@ -24,9 +24,9 @@ printExpression (Parens ex) = "(" <> printExpression ex <> ")"
 printExpression (List ex) = list (map printExpression ex)
 printExpression (Function name ex) = pretty name <> tupled (map printExpression ex) 
 printExpression (PrefixExp name ex) = pretty name <+> printExpression ex
-printExpression (PostfixExp name ex) = printExpression ex <+> pretty name
+printExpression (PostfixExp name ex) = pretty name <+> printExpression ex
 printExpression (InfixExp name ex1 ex2) = printExpression ex1 <+> pretty name <+> printExpression ex2
-printExpression (IfSimple cond ex) = "if" <+> printExpression cond <+> "then" <+> printExpression ex
+printExpression (IfSimple cond ex) = "if" <+> printExpression cond <+> "then" <+> printExpression ex <+> "else" <+> "pure ()"
 printExpression (IfElse cond ex1 ex2) = "if" <+> printExpression cond <+> "then" <+> printExpression ex1 <+> "else" <+> printExpression ex2
 
 printFunctionSignature :: Function -> Doc a

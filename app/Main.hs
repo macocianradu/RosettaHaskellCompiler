@@ -12,6 +12,7 @@ import PrettyPrinter.Type
 import PrettyPrinter.Function
 import Semantic.TypeChecker
 import Semantic.ExpressionChecker
+import Semantic.FunctionChecker
 import Model.Function
 import Model.Type
 import System.Environment.Blank (getArgs)
@@ -26,7 +27,7 @@ main = do
     case parse rosettaParser "" (Text.pack rosettaString) of
         Left errorBundle -> print (errorBundlePretty errorBundle)
         Right objs -> do
-            putStrLn $ printObjects (definedTypes, definedFunctions) objs
+            writeFile (args !! 1) (printObjects (definedTypes, definedFunctions) objs) 
             where 
                 definedFunctions = addNewFunctions (definedTypes, defaultMap) objs
                 definedTypes = addNewTypes [] objs
@@ -39,15 +40,15 @@ printObjects (t, s) objs
                     
 printObject :: ([Type], [Symbol]) -> RosettaObject -> Either [TypeCheckError] String
 printObject (definedTypes, _) (TypeObject t)
-    | isRight checked = Right $ printType t
+    | isRight checked = Right $ printType $ fromRightUnsafe checked
     | otherwise = Left $ fromLeftUnsafe checked
     where checked = checkType definedTypes t
 printObject _ (EnumObject e) = Right $ printEnum e
-printObject (_, definedFunctions) (FunctionObject (MakeFunction name desc inp out ex))
-    | isRight checked = Right $ printFunction (MakeFunction name desc inp out ex)
-    | otherwise = Left [fromLeftUnsafe checked]
+printObject (definedTypes, definedFunctions) (FunctionObject fun)
+    | isRight checked = Right $ printFunction $ fromRightUnsafe checked
+    | otherwise = Left $ fromLeftUnsafe checked
     where 
-        checked = checkExpression definedFunctions ex
+        checked = checkFunction (definedTypes, definedFunctions) fun
 
 addNewFunctions :: ([Type], [Symbol]) -> [RosettaObject] -> [Symbol]
 addNewFunctions (_, s) [] = s
