@@ -9,9 +9,11 @@ import PrettyPrinter.Type
   
 -- show printStatementTree 
 
+-- |Converts a Function into a haskell valid String
 printFunction :: Function -> String
 printFunction f = show $ vcat [printFunctionSignature f, printFunctionBody f]
 
+-- |Converts the body of a Function into a haskell valid Doc
 printFunctionBody :: Function -> Doc a
 printFunctionBody (MakeFunction name _ _ _ ex) = pretty name <+> "=" <+> printExpression ex
 printExpression :: Expression -> Doc a
@@ -29,9 +31,11 @@ printExpression (InfixExp name ex1 ex2) = printExpression ex1 <+> pretty name <+
 printExpression (IfSimple cond ex) = "if" <+> printExpression cond <+> "then" <+> printExpression ex <+> "else" <+> "pure ()"
 printExpression (IfElse cond ex1 ex2) = "if" <+> printExpression cond <+> "then" <+> printExpression ex1 <+> "else" <+> printExpression ex2
 
+-- |Converts a function into a haskell valid Doc representing the signature of the function
 printFunctionSignature :: Function -> Doc a
 printFunctionSignature (MakeFunction name description inputs output _) =
     printDescription description (pretty name <+> prettyPrintType (Prelude.map printCardinality (inputs ++ [output])))
 
+-- |Zips the signature with the needed characters ('::', '->')
 prettyPrintType :: [Doc x] -> Doc x
 prettyPrintType = align . sep . Prelude.zipWith (<+>) ("::" : repeat "->")

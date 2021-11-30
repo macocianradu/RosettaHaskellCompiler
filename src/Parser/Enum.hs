@@ -7,6 +7,8 @@ import Text.Megaparsec.Char
 import Text.Megaparsec
 import Model.Enum
 
+
+-- |Parses a complete Rosetta enum into a EnumType
 enumParser :: Parser EnumType
 enumParser = 
     do 
@@ -15,6 +17,8 @@ enumParser =
         values <- some enumValueParser
         return (MakeEnum eName eDescription values)
     
+    
+-- |Parses a Rosetta enum value into a EnumValue
 enumValueParser :: Parser EnumValue
 enumValueParser = 
     do
@@ -23,6 +27,8 @@ enumValueParser =
         vDescription <- optional descriptionParser
         return (MakeEnumValue vName vDescription dName)
 
+
+-- |Parses the display name of a Rosetta enum value into a String
 enumValueDisplayNameParser :: Parser String
 enumValueDisplayNameParser =
     do
@@ -30,6 +36,8 @@ enumValueDisplayNameParser =
         _ <- char '"'
         lexeme $ anySingle `manyTill` char '"'
 
+
+-- |Parses the name of a Rosetta enum into a String
 enumNameParser :: Parser String
 enumNameParser = 
     do

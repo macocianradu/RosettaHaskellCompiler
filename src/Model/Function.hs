@@ -2,6 +2,7 @@ module Model.Function where
 
 import Model.Type (TypeAttribute)
   
+-- |The representation of a Rosetta function type
 data Function = 
     MakeFunction {
         functionName :: String,
@@ -11,18 +12,8 @@ data Function =
         assignment :: Expression
     }
     deriving (Show)
-    
---data Condition =
---    MakeCondition {
---        conditionDescription :: Maybe String,
---        conditionStatement :: Expression
---    }
---    | MakePostCondition {
---        conditionDescription :: Maybe String,
---        conditionStatement :: Expression
---    }
---    deriving (Show)
      
+-- |The representation of an expression
 data Expression = Variable String
     | Int String
     | Real String
