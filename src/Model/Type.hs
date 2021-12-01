@@ -41,3 +41,14 @@ data Cardinality =
     -- |The cardinality of no bounds (ex. * - *)
   | NoBounds 
   deriving Show
+  
+instance Eq Cardinality where
+    (==) (Bounds (x1, x2)) (Bounds (y1, y2))
+        | x1 == y1 && x2 == y2 = True
+        | otherwise = False
+    (==) (OneBound x) (OneBound y) = x == y
+    (==) NoBounds NoBounds = True
+    (==) _ _ = False
+  
+typeAndCardinality :: TypeAttribute -> (Type, Cardinality)
+typeAndCardinality (MakeTypeAttribute _ typ crd _) = (typ, crd)

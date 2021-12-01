@@ -6,12 +6,13 @@ import Data.Either
 -- |A datatype for the different types of type check errors
 data TypeCheckError =
    UndefinedType String
-   | IfConditionNotBoolean
-   | IfExpressionsDifferentTypes
+   | IfConditionNotBoolean String
+   | IfExpressionsDifferentTypes String String
    | UndefinedFunction String
    | ErrorInsideFunction String
    | UndefinedVariable String
    | TypeMismatch String String
+   | CardinalityMismatch Cardinality Cardinality
    deriving (Show)
 
 -- |Checks whether a data type is valid

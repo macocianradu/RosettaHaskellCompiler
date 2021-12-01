@@ -24,11 +24,11 @@ type ObservationPrimitive:
 func EquityPriceObservation: <"Function specification for the observation of an equity price, based on the attributes of the 'EquityValuation' class.">
    inputs:
       equity int (1..1)
-      valuationDate int (1..1)
+      valuationDate ObservationPrimitive (1..1)
       valuationTime int (0..1)
       timeType TestType (0..1)
       determinationMethod ObservationPrimitive (1..*)
    output:
-      observation ObservationPrimitive (1..1)
+      observation ObservationPrimitive (0..1)
 
    assign-output: if equity exists then valuationDate
