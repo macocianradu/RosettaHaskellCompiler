@@ -28,7 +28,7 @@ printExpression (Function name ex) = pretty name <> tupled (map printExpression 
 printExpression (PrefixExp name ex) = pretty name <+> printExpression ex
 printExpression (PostfixExp name ex) = pretty name <+> printExpression ex
 printExpression (InfixExp name ex1 ex2) = printExpression ex1 <+> pretty name <+> printExpression ex2
-printExpression (IfSimple cond ex) = "if" <+> printExpression cond <+> "then" <+> printExpression ex <+> "else" <+> "pure ()"
+printExpression (IfSimple cond ex) = "if" <+> printExpression cond <+> "then" <+> printExpression ex <+> "else" <+> "Nothing"
 printExpression (IfElse cond ex1 ex2) = "if" <+> printExpression cond <+> "then" <+> printExpression ex1 <+> "else" <+> printExpression ex2
 
 -- |Converts a function into a haskell valid Doc representing the signature of the function
