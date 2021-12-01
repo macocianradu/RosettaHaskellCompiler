@@ -15,6 +15,7 @@ import Semantic.ExpressionChecker
 import Semantic.FunctionChecker
 import Model.Type
 import System.Environment.Blank (getArgs)
+import Parser.Expression
 import Model.Enum
 import Data.Either
 

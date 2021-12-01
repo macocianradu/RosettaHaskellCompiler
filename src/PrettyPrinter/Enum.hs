@@ -13,7 +13,7 @@ printEnum (MakeEnum name description values) =
         (vcat ["data" <+> pretty name <+> "=", 
         indent 4 (printEnumValues values),
         "",
-        printDisplayNames name values])
+        printDisplayNames name values, emptyDoc])
     
 -- |Converts a list of EnumValues into a haskell valid Doc
 printEnumValues :: [EnumValue] -> Doc a

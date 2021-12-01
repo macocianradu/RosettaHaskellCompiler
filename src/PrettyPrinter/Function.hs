@@ -12,7 +12,7 @@ import Model.Type
 
 -- |Converts a Function into a haskell valid String
 printFunction :: Function -> String
-printFunction f = show $ vcat [printFunctionSignature f, printFunctionBody f]
+printFunction f = show $ vcat [printFunctionSignature f, printFunctionBody f, emptyDoc]
 
 -- |Converts the body of a Function into a haskell valid Doc
 printFunctionBody :: Function -> Doc a

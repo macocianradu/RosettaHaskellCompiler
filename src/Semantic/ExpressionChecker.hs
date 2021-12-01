@@ -100,8 +100,8 @@ checkExpression symbolMap (IfSimple cond ex)
         checkedExp = checkExpression symbolMap ex
 -- |Checks if the condition of the if statement is of type boolean, and then checks that both the then and else statements have the same type
 checkExpression symbolMap (IfElse cond ex1 ex2)
-    | isRight condType || isRight (typeMatch (fromRightUnsafe condType) (BasicType "Boolean", Bounds (1, 1))) = Left $ IfConditionNotBoolean $ show cond
-    | isRight ex1Type || isRight ex2Type || isRight (typeMatch (fromRightUnsafe ex1Type) (fromRightUnsafe ex2Type)) = Left $ IfExpressionsDifferentTypes (show ex1) (show ex2)
+    | isLeft condType || isLeft (typeMatch (fromRightUnsafe condType) (BasicType "Boolean", Bounds (1, 1))) = Left $ IfConditionNotBoolean $ show cond
+    | isLeft ex1Type || isLeft ex2Type || isLeft (typeMatch (fromRightUnsafe ex1Type) (fromRightUnsafe ex2Type)) = Left $ IfExpressionsDifferentTypes (show ex1) (show ex2)
     | otherwise = ex1Type
     where   condType = checkExpression symbolMap cond
             ex1Type = checkExpression symbolMap ex1
@@ -127,7 +127,7 @@ checkList1 symbs (ex : exps) typ
 
 -- |Checks whether the function that is called is already defined with the same argument types
 checkFunctionCall :: [Symbol] -> String -> [Either TypeCheckError (Type, Cardinality)] -> Either TypeCheckError (Type, Cardinality)
-checkFunctionCall [] fun args = Left $ UndefinedFunction $ "Undefined function: \"" ++ fun ++ "\" [" ++ concatMap (typeName . fst) (rights args) ++ "]"
+checkFunctionCall [] fun args = Left $ UndefinedFunction $ "Undefined function: \"" ++ fun ++ "\" [" ++ show (rights args) ++ "]"
 checkFunctionCall ((Func n a r):symbolMap) name args
     | length right /= length args = Left $ ErrorInsideFunction (name ++ ": " ++ show args ++ show (lefts args))
     | name == n && all isRight (zipWith typeMatch a right) = Right r
