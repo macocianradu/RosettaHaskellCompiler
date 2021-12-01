@@ -94,7 +94,7 @@ checkExpression symbolMap (IfSimple cond ex)
             -- |The unbounded or semi-bounded cardinalities already have 0 included
             Right x -> Right x
             Left err -> Left err
-    | otherwise = Left $ IfConditionNotBoolean $ show condType ++ " | " ++ show (getVars symbolMap)
+    | otherwise = Left $ IfConditionNotBoolean $ show condType
     where 
         condType = checkExpression symbolMap cond
         checkedExp = checkExpression symbolMap ex
