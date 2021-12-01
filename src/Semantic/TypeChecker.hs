@@ -18,11 +18,20 @@ data TypeCheckError =
 -- |Checks whether a data type is valid
 checkType :: [Type] -> Type -> Either [TypeCheckError] Type
 checkType definedTypes (MakeType name super desc attr)
-    | null (lefts checkedAttr) = Right $ MakeType name super desc (rights checkedAttr)
+    | null (lefts checkedAttr) = case checkSuper definedTypes super of
+        Right superChecked -> Right $ MakeType name superChecked desc (rights checkedAttr)
+        Left err -> Left [err]
     | otherwise = Left $ lefts checkedAttr  
-    where checkedAttr = checkAttributes definedTypes attr 
+    where checkedAttr = checkAttributes definedTypes attr
 checkType _ (BasicType b) = Right (BasicType b)
 
+
+checkSuper :: [Type] -> Maybe Type -> Either TypeCheckError (Maybe Type)
+checkSuper _ Nothing = Right Nothing
+checkSuper definedTypes (Just super) = 
+    case checkAttributeType definedTypes super of
+        Right sup -> Right (Just sup)
+        Left err -> Left err
 
 -- |Checks whether all the types of the attributes of a data type are already defined
 checkAttributes :: [Type] -> [TypeAttribute] -> [Either TypeCheckError TypeAttribute]

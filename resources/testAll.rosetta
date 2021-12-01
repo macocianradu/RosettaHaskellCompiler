@@ -3,32 +3,32 @@ enum PeriodEnum: <"The enumerated values to specified the period, e.g. day, week
     M displayName "month" <"Month">
     Y displayName "year" <"Year">
 
-type Period extends Something: <"description">
+type Period extends TestType: <"description">
     periodMultiplier int (1..1) <"A time period multiplier, e.g. 1, 2 or 3 etc. A negative value can be used when specifying an offset relative to another date, e.g. -2 days.">
     testMany TestType (0..*) <"Test many">
     testSome TestSomeType (1..*) <"Test some">
     testMaybeOne TestZeroOneType (0..1) <"Test zero or one">
 
 type TestType:
-    periodMultiplier int (1..1)
+    testType int (1..1)
 
 type TestSomeType: <"description">
-    periodMultiplier int (1..1) <"A time period multiplier, e.g. 1, 2 or 3 etc. A negative value can be used when specifying an offset relative to another date, e.g. -2 days.">
+    testSomeType int (1..1) <"A time period multiplier, e.g. 1, 2 or 3 etc. A negative value can be used when specifying an offset relative to another date, e.g. -2 days.">
 
-type TestZeroOneType extends Period:
-    periodMultiplier int (1..1)
+type TestZeroOneType:
+    testZeroOneType int (1..1)
 
 type ObservationPrimitive:
-    periodMultiplier int (1..1)
+    observationPrimitive int (1..1)
 
 func EquityPriceObservation: <"Function specification for the observation of an equity price, based on the attributes of the 'EquityValuation' class.">
    inputs:
       equity int (1..1)
-      valuationDate ObservationPrimitive (1..1)
+      valuationDate ObservationPrimitive (0..1)
       valuationTime int (0..1)
       timeType TestType (0..1)
       determinationMethod ObservationPrimitive (1..*)
    output:
       observation ObservationPrimitive (0..1)
 
-   assign-output: if equity exists then valuationDate
+   assign-output: if 2 = 3 then valuationDate

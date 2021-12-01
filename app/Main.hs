@@ -19,6 +19,7 @@ import Model.Enum
 import Data.Either
 
 -- :set args resources/testAll.rosetta resources/Generated/testAll.hs
+-- :l resources/Generated/testAll.hs
 -- |Reads a rosetta string from the first input argument and writes a haskell output to the file given as a second argument
 main :: IO ()
 main = do
