@@ -36,8 +36,8 @@ func EquityPriceObservation: <"Function specification for the observation of an 
 func Something: <"asd">
     inputs:
         equity1 boolean (1..1)
-        something1 boolean (1..1)
+      determinationMethod ObservationPrimitive (1..1)
     output:
-        valuation ObservationPrimitive (1..1)
+        valuation ObservationPrimitive (0..1)
 
-    assign-output: if True and False then determinationMethod else determinationMethod
+    assign-output: if True and False then determinationMethod
