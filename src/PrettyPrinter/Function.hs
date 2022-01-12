@@ -34,10 +34,13 @@ printExpression (PostfixExp "multiple exists" ex) = "length" <+> printExpression
 printExpression (PostfixExp "count" ex) = "length" <+> printExpression ex
 printExpression (PostfixExp name ex) = pretty name <+> printExpression ex
 -- Equality expressions
+-- [a] a all = 
+-- any <>
 printExpression (InfixExp "=" ex1 ex2) = printExpression ex1 <+> "==" <+> printExpression ex2
 printExpression (InfixExp "<>" ex1 ex2) = printExpression ex1 <+> "/=" <+> printExpression ex2
 printExpression (InfixExp "any =" ex1 ex2) = printExpression ex2 <+> "`elem`" <+> printExpression ex1
 printExpression (InfixExp "all <>" ex1 ex2) = printExpression ex2 <+> "`notElem`" <+> printExpression ex1
+--printExpression (InfixExp "all =" ex1 ex2) = "all (Eq)" <+> printExpression ex2 <+> printExpression ex1
 printExpression (InfixExp "and" ex1 ex2) = printExpression ex1 <+> "&&" <+> printExpression ex2
 printExpression (InfixExp "or" ex1 ex2) = printExpression ex1 <+> "||" <+> printExpression ex2
 printExpression (InfixExp name ex1 ex2) = printExpression ex1 <+> pretty name <+> printExpression ex2

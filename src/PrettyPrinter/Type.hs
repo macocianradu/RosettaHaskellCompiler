@@ -28,7 +28,7 @@ printAttributes (at : ats) = (printAttribute at <> ",") : printAttributes ats
 printAttribute :: TypeAttribute -> Doc a
 printAttribute (MakeTypeAttribute name typ crd description) =
     printDescription description 
-        (pretty name <+> "::" <+> printCardinality (MakeTypeAttribute name typ crd description))   
+        (pretty name <+> "::" <+> printCardinality (MakeTypeAttribute name typ crd description))
 
 -- |Converts a Cardinality into a haskell valid Doc
 printCardinality :: TypeAttribute -> Doc a

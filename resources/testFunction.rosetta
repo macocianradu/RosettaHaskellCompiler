@@ -1,11 +1,44 @@
 func EquityPriceObservation: <"Function specification for the observation of an equity price, based on the attributes of the 'EquityValuation' class.">
    inputs:
-      equity Equity (1..1)
-      valuationDate AdjustableOrRelativeDate (1..1)
-      valuationTime BusinessCenterTime (0..1)
-      timeType TimeTypeEnum (0..1)
-      determinationMethod DeterminationMethodEnum (1..*)
+      equity int (1..1)
+      determinationMethod ObservationPrimitive (1..1)
    output:
-      observation ObservationPrimitive (1..1)
+      observation ObservationPrimitive (0..1)
 
-   assign-output: if asd exists then var2
+   assign-output: if True and False then valuationDate
+
+func EquityPriceObservation: <"Function specification for the observation of an equity price, based on the attributes of the 'EquityValuation' class.">
+  inputs:
+     equity int (1..1)
+     determinationMethod ObservationPrimitive (1..1)
+  output:
+     observation ObservationPrimitive (0..*)
+
+  assign-output: if True and False then valuationDate
+
+func EquityPriceObservation: <"Function specification for the observation of an equity price, based on the attributes of the 'EquityValuation' class.">
+ inputs:
+    equity int (1..1)
+    determinationMethod ObservationPrimitive (1..1)
+ output:
+    observation ObservationPrimitive (1..1)
+
+ assign-output: if True and False then valuationDate
+
+func EquityPriceObservation: <"Function specification for the observation of an equity price, based on the attributes of the 'EquityValuation' class.">
+inputs:
+   equity int (1..1)
+   determinationMethod ObservationPrimitive (1..1)
+output:
+   observation ObservationPrimitive (1..*)
+
+assign-output: if True and False then valuationDate
+
+func EquityPriceObservation: <"Function specification for the observation of an equity price, based on the attributes of the 'EquityValuation' class.">
+inputs:
+  equity int (1..1)
+  determinationMethod ObservationPrimitive (1..1)
+output:
+  observation ObservationPrimitive (*..*)
+
+assign-output: if True and False then valuationDate

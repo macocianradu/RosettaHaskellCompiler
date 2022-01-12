@@ -79,6 +79,7 @@ test-suite RosettaParser-test
       Parser.EnumSpec
       Parser.ExpressionSpec
       Parser.TypeSpec
+      PrettyPrinter.EnumSpec
       Paths_RosettaParser
   hs-source-dirs:
       test

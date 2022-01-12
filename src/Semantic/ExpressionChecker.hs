@@ -175,7 +175,7 @@ cardinalityIncluded (Bounds (x1, x2)) (Bounds (y1, y2))
 -- |Looks in the symbol map for the type of a variable
 findVarType :: String -> [Symbol] -> Either TypeCheckError (Type, Cardinality)
 findVarType var [] = Left $ UndefinedVariable var
-findVarType x ((Var name typ crd):symbols) 
+findVarType x ((Var name typ crd):symbols)
     | x == name = Right (typ, crd)
     | otherwise = findVarType x symbols
 findVarType x (_:symbols) = findVarType x symbols
