@@ -17,6 +17,8 @@ import Model.Type
 import System.Environment.Blank (getArgs)
 import Model.Enum
 import Data.Either
+import Model.Header
+import Parser.Header
 
 -- :set args resources/testAll.rosetta resources/Generated/testAll.hs
 -- :l resources/Generated/testAll.hs
@@ -25,11 +27,9 @@ main :: IO ()
 main = do
     args <- getArgs
     rosettaString <- readFile $ head args
-    -- |Parse the string read from the input file
     case parse rosettaParser "" (Text.pack rosettaString) of
         Left errorBundle -> print (errorBundlePretty errorBundle)
         Right objs -> do
-            -- |Write the haskell string into the second argument
             writeFile (args !! 1) (printObjects (definedTypes, definedFunctions) objs) 
             where 
                 -- |Adds all the function definitions from the file into the symbol table
@@ -77,8 +77,11 @@ addNewTypes defined (EnumObject (MakeEnum name _ _): os) = addDefinedTypes (addN
 addNewTypes defined (_ :os) = addNewTypes defined os
 
 -- |Parses any supported Rosetta types into a list of RosettaObject
-rosettaParser :: Parser [RosettaObject]
-rosettaParser = many (try parseEnum <|> try parseType <|> try parseFunction) <* eof
+rosettaParser :: Parser (Header, [RosettaObject])
+rosettaParser = do 
+    header <- headerParser
+    objects <- many (try parseEnum <|> try parseType <|> try parseFunction) <* eof
+    return (header, objects)
 
 -- |Reads an enum into a RosettaObject
 parseEnum :: Parser RosettaObject
