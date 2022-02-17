@@ -88,9 +88,7 @@ checkExpression symbolMap (InfixExp name ex1 ex2) = checkFunctionCall symbolMap 
 checkExpression symbolMap (IfSimple cond ex)
     | isRight condType && isSubType (fst $ fromRightUnsafe condType) (BasicType "Boolean") && snd (fromRightUnsafe condType) == Bounds (1, 1) = 
         case checkedExp of
-            -- |The if without else statement always has a cardinality lower bound of 0
             Right (typ, Bounds(_, x)) -> Right (typ, Bounds(0, x))
-            -- |The unbounded or semi-bounded cardinalities already have 0 included
             Right x -> Right x
             Left err -> Left err
     | otherwise = Left $ IfConditionNotBoolean $ show condType
@@ -101,7 +99,6 @@ checkExpression symbolMap (IfSimple cond ex)
 checkExpression symbolMap (IfElse cond ex1 ex2)
     | isLeft condType || isSubType (fst $ fromRightUnsafe condType) (BasicType "Boolean") && snd (fromRightUnsafe condType) == Bounds (1, 1) = Left $ IfConditionNotBoolean $ show cond
     | isLeft ex1Type || isLeft ex2Type || 
-        -- |Both branches must resolve to the same type and cardinality
         isLeft (typeMatch (fst $ fromRightUnsafe ex1Type) (fst $ fromRightUnsafe ex2Type)) || 
         snd (fromRightUnsafe ex1Type) /= snd (fromRightUnsafe ex2Type) = Left $ IfExpressionsDifferentTypes (show ex1) (show ex2)
     | otherwise = ex1Type
@@ -122,12 +119,13 @@ checkList1 :: [Symbol] -> [Expression] -> (Type, Cardinality) -> Either TypeChec
 checkList1 _ [] typ = Right typ
 checkList1 symbs (ex : exps) typ 
     | isLeft exTyp = exTyp
-    | not match = Left $ TypeMismatch (typeName $ fst typ) (typeName $ fst (fromRightUnsafe exTyp))
-    | otherwise = checkList1 symbs exps (fst typ, crd)
+    | sub = checkList1 symbs exps (fst typ, smallestBound (snd $ fromRightUnsafe exTyp) (snd typ))
+    | sup = checkList1 symbs exps (fst $ fromRightUnsafe exTyp, smallestBound (snd $ fromRightUnsafe exTyp) (snd typ))
+    | otherwise = Left $ TypeMismatch (typeName $ fst typ) (typeName $ fst (fromRightUnsafe exTyp))
     where 
         exTyp = checkExpression symbs ex 
-        match = fst typ == fst (fromRightUnsafe exTyp)
-        crd = snd typ .+ snd (fromRightUnsafe exTyp)
+        sub = isSubType (fst typ) (fst (fromRightUnsafe exTyp))
+        sup = isSubType (fst (fromRightUnsafe  exTyp)) (fst typ)
 
 -- |Checks whether the function that is called is already defined with the same argument types
 checkFunctionCall :: [Symbol] -> String -> [Either TypeCheckError (Type, Cardinality)] -> Either TypeCheckError (Type, Cardinality)
@@ -142,11 +140,11 @@ checkFunctionCall (_:symbolMap) name args = checkFunctionCall symbolMap name arg
 
 typeIncluded :: (Type, Cardinality) -> (Type, Cardinality) -> Either TypeCheckError Bool
 typeIncluded (t1, c1) (t2, c2)
-    | isSubType t1 t2 && cardinalityIncluded c1 c2 = Right True
-    | isSubType t1 t2 = Left $ CardinalityMismatch c1 c2
+    | t1 `isSubType` t2 && cardinalityIncluded c1 c2 = Right True
+    | t1 `isSubType` t2 = Left $ CardinalityMismatch c1 c2
     | otherwise = Left $ TypeMismatch (typeName t1) (typeName t2)
 
--- |Checks whether two types are compatible
+-- |Checks whether two types are compatible (i.e. they have a common super type)
 typeMatch :: Type -> Type -> Either TypeCheckError Type
 -- |An object matches only with object
 typeMatch (BasicType "Object") _ = Right $ BasicType "Object"
@@ -163,30 +161,6 @@ typeMatch x y
     | isRight match = Right $ fromRightUnsafe match 
     | otherwise = typeMatch (superType x) y
     where match = typeMatch x (superType y)
-    
--- |Checks whether the first argument is a subtype of the second argument
-isSubType :: Type -> Type -> Bool
-isSubType (BasicType "Integer") (BasicType "Double") = True
-isSubType _ (BasicType "Any") = True
-isSubType _ (BasicType "Object") = False
-isSubType x y 
-    | x == y = True
-    | otherwise = isSubType (superType x) y
-    
--- |Checks whether the first cardinality is included into the second one 
-cardinalityIncluded :: Cardinality -> Cardinality -> Bool
-cardinalityIncluded _ NoBounds = True
-cardinalityIncluded NoBounds _ = False
-cardinalityIncluded (OneBound x) (OneBound y)
-    | x >= y = True
-    | otherwise = False
-cardinalityIncluded (Bounds (x1, _)) (OneBound y)
-    | x1 >= y = True
-    | otherwise = False
-cardinalityIncluded (OneBound _) (Bounds (_, _)) = False
-cardinalityIncluded (Bounds (x1, x2)) (Bounds (y1, y2))
-    | x1 >= y1 && x2 <= y2 = True
-    | otherwise = False
 
 -- |Looks in the symbol map for the type of a variable
 findVarType :: String -> [Symbol] -> Either TypeCheckError (Type, Cardinality)

@@ -27,12 +27,14 @@ library
   exposed-modules:
       Model.Enum
       Model.Function
+      Model.Header
       Model.RosettaObject
       Model.Type
       Parser.Enum
       Parser.Expression
       Parser.Function
       Parser.General
+      Parser.Header
       Parser.Type
       PrettyPrinter.Enum
       PrettyPrinter.Function
@@ -76,6 +78,7 @@ test-suite RosettaParser-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Model.TypeSpec
       Parser.EnumSpec
       Parser.ExpressionSpec
       Parser.TypeSpec

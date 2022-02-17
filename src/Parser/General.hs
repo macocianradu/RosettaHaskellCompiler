@@ -57,6 +57,9 @@ allowedChars = letterChar <|> digitChar <|> char '_'
 -- |List of restricted names used by Rosetta
 restrictedNames :: [String]
 restrictedNames = [
+    "if",
+    "then",
+    "else",
     "displayName",
     "enum",
     "func",

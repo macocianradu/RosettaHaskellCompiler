@@ -28,10 +28,10 @@ checkType _ (BasicType b) = Right (BasicType b)
 populateSuper :: [Type] -> [Type] -> Type -> Either TypeCheckError Type
 populateSuper _ _ (BasicType "Object") = Right (BasicType "Object")
 populateSuper _ _ (BasicType _) = Left $ UndefinedType "Can't extend basic types"
-populateSuper _ [] t = Left $ UndefinedType (typeName t)
+populateSuper _ [] t = error "WTF" --Left $ UndefinedType (typeName t)
 populateSuper allTypes (currType : types) (MakeType t super d a) 
-    | typeName currType == typeName super = case populateSuper allTypes allTypes currType of
-        Right superChecked -> Right $ MakeType t superChecked d a
+    | typeName currType == t = case populateSuper allTypes allTypes super of
+        Right superChecked -> Right $ MakeType t superChecked (typeDescription currType) (typeAttributes currType)
         Left err -> Left err
     | otherwise = populateSuper allTypes types (MakeType t super d a)
 

@@ -11,7 +11,7 @@ import Data.Char
 checkFunction :: ([Type], [Symbol]) ->  Function -> Either [TypeCheckError] Function
 checkFunction (definedTypes, symbols) (MakeFunction name desc inp out ex)
     | isRight checkedEx && isRight checkedOut && null (lefts checkedIn) = 
-        case typeIncluded (attributeType $ fromRightUnsafe checkedOut, Model.Type.cardinality out) (fromRightUnsafe checkedEx) of
+        case typeIncluded (fromRightUnsafe checkedEx) (attributeType $ fromRightUnsafe checkedOut, Model.Type.cardinality out) of
             Right _ -> Right $ MakeFunction (toLower (head name) : tail name) desc (rights checkedIn) (fromRightUnsafe checkedOut) ex
             Left err -> Left [err] 
     | otherwise = Left $ lefts [checkedOut] ++ lefts checkedIn ++ lefts [checkedEx]

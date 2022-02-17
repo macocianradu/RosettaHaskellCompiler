@@ -50,6 +50,15 @@ instance Eq Cardinality where
     (==) NoBounds NoBounds = True
     (==) _ _ = False
 
+-- |Function to create the smallest cardinality that includes two others
+smallestBound  :: Cardinality -> Cardinality -> Cardinality
+smallestBound NoBounds _ = NoBounds
+smallestBound _ NoBounds = NoBounds
+smallestBound (OneBound x) (OneBound y) = OneBound $ min x y
+smallestBound (OneBound x) (Bounds (y, _)) = smallestBound (OneBound x) (OneBound y)
+smallestBound (Bounds (x, _)) (OneBound y) = smallestBound (OneBound x) (OneBound y)
+smallestBound (Bounds (x1, x2)) (Bounds (y1, y2)) = Bounds (min x1 y1, max x2 y2)
+
 -- |A function used to add two cardinalities    
 addBounds :: Cardinality -> Cardinality -> Cardinality
 addBounds (Bounds (x1, x2)) (Bounds (y1, y2)) = Bounds (x1 + y1, x2 + y2)
@@ -69,3 +78,28 @@ infixl 5 .+
   
 typeAndCardinality :: TypeAttribute -> (Type, Cardinality)
 typeAndCardinality (MakeTypeAttribute _ typ crd _) = (typ, crd)
+
+    
+-- |Checks whether the first argument is a subtype of the second argument
+isSubType :: Type -> Type -> Bool
+isSubType (BasicType "Integer") (BasicType "Double") = True
+isSubType _ (BasicType "Any") = True
+isSubType _ (BasicType "Object") = False
+isSubType x y 
+    | x == y = True
+    | otherwise = isSubType (superType x) y
+    
+-- |Checks whether the first cardinality is included into the second one 
+cardinalityIncluded :: Cardinality -> Cardinality -> Bool
+cardinalityIncluded _ NoBounds = True
+cardinalityIncluded NoBounds _ = False
+cardinalityIncluded (OneBound x) (OneBound y)
+    | x >= y = True
+    | otherwise = False
+cardinalityIncluded (Bounds (x1, _)) (OneBound y)
+    | x1 >= y = True
+    | otherwise = False
+cardinalityIncluded (OneBound _) (Bounds (_, _)) = False
+cardinalityIncluded (Bounds (x1, x2)) (Bounds (y1, y2))
+    | x1 >= y1 && x2 <= y2 = True
+    | otherwise = False
