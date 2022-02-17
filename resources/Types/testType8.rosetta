@@ -1,0 +1,20 @@
+type A: <"description">
+    a int (1..1) <"A">
+
+type B extending A: <"description">
+    b int (1..1) <"B">
+
+type C extending A: <"description">
+    c int (1..1) <"C">
+
+type D extending B: <"description">
+    d int (1..1) <"D">
+
+type F extending B: <"description">
+    f int (1..1) <"F">
+
+type G extending C: <"description">
+    g int (1..1) <"G">
+
+type H extending C: <"description">
+    h int (1..1) <"H">

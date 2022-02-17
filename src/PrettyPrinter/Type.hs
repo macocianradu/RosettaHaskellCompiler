@@ -8,15 +8,15 @@ import Model.Type
 
 -- |Converts an EnumType into a haskell valid String
 printType :: Type -> String
-printType (MakeType name (Just (MakeType super _ _ _)) description attributes) = printType (MakeType name Nothing description (superToAttribute name super:attributes))
-printType (MakeType _ (Just (BasicType _)) _ _) = error "Can't extend basic types"
-printType (MakeType name Nothing description attributes) =
+printType (MakeType name (MakeType super _ _ _) description attributes) = printType (MakeType name (BasicType "Object") description (superToAttribute name super:attributes))
+printType (MakeType name (BasicType "Object") description attributes) =
     show $ printDescription description (vcat [nest 4 $ vcat ("data" <+> pretty name <+> "=" <+> "Make" <> pretty name <+> "{": printAttributes attributes), "}", "", emptyDoc])
+printType (MakeType _ (BasicType _) _ _) = error "Can't extend basic types"
 printType (BasicType name) = show $ pretty name
    
 -- |Creates an attribute that accesses the super type
 superToAttribute :: String -> String -> TypeAttribute
-superToAttribute name typ = MakeTypeAttribute ("super" ++ name) (MakeType typ Nothing Nothing []) (Bounds (1, 1)) (Just "Pointer to super class")  
+superToAttribute name typ = MakeTypeAttribute ("super" ++ name) (MakeType typ (BasicType "Object") Nothing []) (Bounds (1, 1)) (Just "Pointer to super class")  
    
 -- |Converts a list of TypeAttributes into a list of haskell valid Docs 
 printAttributes :: [TypeAttribute] -> [Doc a]

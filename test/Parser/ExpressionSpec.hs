@@ -40,7 +40,9 @@ spec = do
 
 exps :: [Expression]
 exps = [
+    -- 1
     InfixExp "+" (Int "1") (Parens (InfixExp "-" (Int "2") (Int "3"))),
+    -- 2
     InfixExp "=" 
         (InfixExp "-" 
             (InfixExp "-" 
@@ -52,17 +54,27 @@ exps = [
                 (InfixExp "*" (Variable "g") (Variable "h"))
                 (InfixExp "*" (Variable "i") (Variable "j")))
             (InfixExp "*" (Variable "k") (Variable "l"))),
+    -- 3
     InfixExp "-" (InfixExp "+" (Variable "a") (Variable "b")) (InfixExp "*" (Variable "c") (InfixExp "^" (Variable "d") (Variable "e"))),
+    -- 4
     InfixExp "-" (InfixExp "-" (InfixExp "-" (InfixExp "-" (InfixExp "-" (Int "1") (Int "2")) (Int "3")) (Int "4")) (Int "5")) (Int "6"),
+    -- 5
     List [Int "1", Int "2", Int "3"],
+    -- 6
     List [Int "1", InfixExp "+" (Int "2") (Int "3"), Variable "e"],
+    -- 7
     Function "Function" [],
+    -- 8
     Function "Function" [Variable "e"],
+    -- 9
     Function "Function" [Int "3", InfixExp "+" (Int "3") (Int "2"), Variable "e"],
+    -- 10
     IfElse (Function "Function" [InfixExp "+" (Int "2") (Int "3"), Variable "e"]) 
          (InfixExp "-" (InfixExp "+" (Variable "a") (Variable "b")) (InfixExp "*" (Variable "c") (InfixExp "^" (Variable "d") (Variable "e->x"))))
          (PrefixExp "not" (PostfixExp "exists" (Variable "a"))),
+    -- 11
     IfSimple (List [Int "1", Function "Function" [Int "3"]]) (InfixExp "-" (InfixExp "-" (Int "1") (Int "2")) (InfixExp "*" (Int "3") (InfixExp "^" (Variable "a->b") (Variable "c")))),
+    -- 12
     InfixExp "or" (Variable "a") (Variable "b")
   ]
                 

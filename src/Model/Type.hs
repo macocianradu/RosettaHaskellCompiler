@@ -5,7 +5,7 @@ import Data.Time.LocalTime()
 -- |The representation of a Rosetta data type
 data Type = MakeType {
         typeName :: String,
-        superType :: Maybe Type,
+        superType :: Type,
         typeDescription :: Maybe String,
         typeAttributes :: [TypeAttribute]
     }
@@ -49,6 +49,23 @@ instance Eq Cardinality where
     (==) (OneBound x) (OneBound y) = x == y
     (==) NoBounds NoBounds = True
     (==) _ _ = False
+
+-- |A function used to add two cardinalities    
+addBounds :: Cardinality -> Cardinality -> Cardinality
+addBounds (Bounds (x1, x2)) (Bounds (y1, y2)) = Bounds (x1 + y1, x2 + y2)
+addBounds (Bounds (x1, _)) (OneBound y1) = OneBound (x1 + y1)
+addBounds (Bounds (x1, _)) NoBounds = OneBound x1
+addBounds (OneBound x1) (Bounds (y1, y2)) = addBounds (Bounds (y1, y2)) (OneBound x1)
+addBounds (OneBound x1) (OneBound y1) = OneBound (x1 + y1)
+addBounds (OneBound x1) NoBounds = OneBound x1
+addBounds NoBounds (Bounds (y1, y2)) = addBounds (Bounds (y1, y2)) NoBounds
+addBounds NoBounds (OneBound y1) = addBounds (OneBound y1) NoBounds
+addBounds NoBounds NoBounds = NoBounds 
+    
+-- |Custom operator for adding cardinalities
+infixl 5 .+
+(.+) :: Cardinality -> Cardinality -> Cardinality
+(.+) = addBounds
   
 typeAndCardinality :: TypeAttribute -> (Type, Cardinality)
 typeAndCardinality (MakeTypeAttribute _ typ crd _) = (typ, crd)

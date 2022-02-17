@@ -5,6 +5,7 @@ module Parser.Type where
 import Model.Type
 import Text.Megaparsec.Char
 import Text.Megaparsec
+import Data.Maybe
 import Parser.General 
   
 -- |Parses a type declaration statement in Rosetta into an Type
@@ -16,7 +17,7 @@ typeParser =
         _ <- lexeme $ char ':'
         tDescription <- optional descriptionParser
         tAttributes <- many $ try typeAttributeParser
-        return (MakeType tName tSuper tDescription tAttributes)
+        if isJust tSuper then return (MakeType tName (fromJust tSuper) tDescription tAttributes) else return (MakeType tName (BasicType "Object") tDescription tAttributes)
 
 -- |Parses the super class declaration statement in Rosetta into an Type
 superTypeParser :: Parser Type
@@ -24,7 +25,7 @@ superTypeParser =
     do
         _ <- lexeme $ string "extends"
         name <- pascalNameParser 
-        return $ MakeType name Nothing Nothing []
+        return $ MakeType name (BasicType "Object") Nothing []
 
 -- |Parses a declared type attribute in Rosetta into a TypeAttribute
 typeAttributeParser :: Parser TypeAttribute
@@ -34,7 +35,7 @@ typeAttributeParser =
         aType <- try nameParser
         card <- cardinalityParser
         desc <- optional descriptionParser
-        return (MakeTypeAttribute aName (MakeType aType Nothing Nothing []) card desc)
+        return (MakeTypeAttribute aName (MakeType aType (BasicType "Object") Nothing []) card desc)
 
 -- |Parses the cardinality of a type attribute in Rosetta into a Cardinality
 cardinalityParser :: Parser Cardinality

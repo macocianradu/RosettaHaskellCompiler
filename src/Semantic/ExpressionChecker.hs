@@ -86,7 +86,7 @@ checkExpression symbolMap (PostfixExp name ex) = checkFunctionCall symbolMap nam
 checkExpression symbolMap (InfixExp name ex1 ex2) = checkFunctionCall symbolMap name (checkExpression symbolMap ex1: [checkExpression symbolMap ex2])
 -- |Checks if the condition of an if expression is of type boolean, and then checks the expression of the then statement
 checkExpression symbolMap (IfSimple cond ex)
-    | isRight condType && isRight (typeMatch (fromRightUnsafe condType) (BasicType "Boolean", Bounds (1, 1))) = 
+    | isRight condType && isSubType (fst $ fromRightUnsafe condType) (BasicType "Boolean") && snd (fromRightUnsafe condType) == Bounds (1, 1) = 
         case checkedExp of
             -- |The if without else statement always has a cardinality lower bound of 0
             Right (typ, Bounds(_, x)) -> Right (typ, Bounds(0, x))
@@ -99,8 +99,11 @@ checkExpression symbolMap (IfSimple cond ex)
         checkedExp = checkExpression symbolMap ex
 -- |Checks if the condition of the if statement is of type boolean, and then checks that both the then and else statements have the same type
 checkExpression symbolMap (IfElse cond ex1 ex2)
-    | isLeft condType || isLeft (typeMatch (fromRightUnsafe condType) (BasicType "Boolean", Bounds (1, 1))) = Left $ IfConditionNotBoolean $ show cond
-    | isLeft ex1Type || isLeft ex2Type || isLeft (typeMatch (fromRightUnsafe ex1Type) (fromRightUnsafe ex2Type)) = Left $ IfExpressionsDifferentTypes (show ex1) (show ex2)
+    | isLeft condType || isSubType (fst $ fromRightUnsafe condType) (BasicType "Boolean") && snd (fromRightUnsafe condType) == Bounds (1, 1) = Left $ IfConditionNotBoolean $ show cond
+    | isLeft ex1Type || isLeft ex2Type || 
+        -- |Both branches must resolve to the same type and cardinality
+        isLeft (typeMatch (fst $ fromRightUnsafe ex1Type) (fst $ fromRightUnsafe ex2Type)) || 
+        snd (fromRightUnsafe ex1Type) /= snd (fromRightUnsafe ex2Type) = Left $ IfExpressionsDifferentTypes (show ex1) (show ex2)
     | otherwise = ex1Type
     where   condType = checkExpression symbolMap cond
             ex1Type = checkExpression symbolMap ex1
@@ -108,69 +111,82 @@ checkExpression symbolMap (IfElse cond ex1 ex2)
 
 -- |Checks that all the expressions in a list have compatible types
 checkList :: [Symbol] -> [Expression] -> Either TypeCheckError (Type, Cardinality)
-checkList symbs exps
-    | isRight typ && fromRightUnsafe typ == (BasicType "Any", NoBounds) = Right (BasicType "Empty", Bounds (0, 0))
+checkList _ [] = Right (BasicType "Empty", Bounds(0, 0))
+checkList symbs (ex : exps)
+    | isRight typ = checkList1 symbs exps (fromRightUnsafe typ) 
     | otherwise = typ
-    where typ = checkList1 symbs exps (BasicType "Any", NoBounds) 
-
+    where typ = checkExpression symbs ex
+    
 -- |Auxiliary function for the check list function
 checkList1 :: [Symbol] -> [Expression] -> (Type, Cardinality) -> Either TypeCheckError (Type, Cardinality)
 checkList1 _ [] typ = Right typ
 checkList1 symbs (ex : exps) typ 
-    | isRight exTyp = exTyp
-    | isRight match = match
-    | otherwise = checkList1 symbs exps (fromRightUnsafe match)
+    | isLeft exTyp = exTyp
+    | not match = Left $ TypeMismatch (typeName $ fst typ) (typeName $ fst (fromRightUnsafe exTyp))
+    | otherwise = checkList1 symbs exps (fst typ, crd)
     where 
         exTyp = checkExpression symbs ex 
-        match = typeMatch typ (fromRightUnsafe exTyp)
+        match = fst typ == fst (fromRightUnsafe exTyp)
+        crd = snd typ .+ snd (fromRightUnsafe exTyp)
 
 -- |Checks whether the function that is called is already defined with the same argument types
 checkFunctionCall :: [Symbol] -> String -> [Either TypeCheckError (Type, Cardinality)] -> Either TypeCheckError (Type, Cardinality)
 checkFunctionCall [] fun args = Left $ UndefinedFunction $ "Undefined function: \"" ++ fun ++ "\" [" ++ show (rights args) ++ "]"
 checkFunctionCall ((Func n a r):symbolMap) name args
     | length right /= length args = Left $ ErrorInsideFunction (name ++ ": " ++ show args ++ show (lefts args))
-    | name == n && all isRight (zipWith typeMatch a right) = Right r
+    | name == n && all isRight (zipWith typeIncluded a right) = Right r
     | otherwise = checkFunctionCall symbolMap name args
-    where right = rights args
+    where 
+        right = rights args
 checkFunctionCall (_:symbolMap) name args = checkFunctionCall symbolMap name args 
 
---Try to match 2nd type to first type
+typeIncluded :: (Type, Cardinality) -> (Type, Cardinality) -> Either TypeCheckError Bool
+typeIncluded (t1, c1) (t2, c2)
+    | isSubType t1 t2 && cardinalityIncluded c1 c2 = Right True
+    | isSubType t1 t2 = Left $ CardinalityMismatch c1 c2
+    | otherwise = Left $ TypeMismatch (typeName t1) (typeName t2)
+
 -- |Checks whether two types are compatible
-typeMatch :: (Type, Cardinality) -> (Type, Cardinality) -> Either TypeCheckError (Type, Cardinality)
-typeMatch (BasicType "Any", card1) (x, card2) 
-    | isRight card = Right (x, fromRightUnsafe card)
-    | otherwise = Left $ fromLeftUnsafe card
-    where card = cardinalityIncluded card2 card1
-typeMatch (BasicType "Double", card1) (BasicType "Integer", card2) 
-    | isRight card = Right (BasicType "Dobule", fromRightUnsafe card)
-    | otherwise = Left $ fromLeftUnsafe card
-    where card = cardinalityIncluded card2 card1
---typeMatch (s, card1) (BasicType s2, card2)
---    | s == BasicType s2 = case cardinalityIncluded card1 card2 of
---        Right card -> Right (s, card)
---        Left err -> Left err 
---    | otherwise = Left $ TypeMismatch (typeName s) s2
-typeMatch (s, card1) (s2, card2)
-    | s == s2 = case cardinalityIncluded card2 card1 of
-        Right card -> Right (s, card)
-        Left err -> Left err
-    | isJust $ superType s2 = typeMatch (s, card1) (fromJust $ superType s2, card2)
-    | otherwise = Left $ TypeMismatch (typeName s) (typeName s2)
+typeMatch :: Type -> Type -> Either TypeCheckError Type
+-- |An object matches only with object
+typeMatch (BasicType "Object") _ = Right $ BasicType "Object"
+typeMatch _ (BasicType "Object") = Right $ BasicType "Object"
+-- |Any matches with any type
+typeMatch (BasicType "Any") x = Right x
+typeMatch x (BasicType "Any") = Right x
+-- |Integer can be a double
+typeMatch (BasicType "Integer") (BasicType "Double") = Right (BasicType "Double")
+typeMatch (BasicType "Double") (BasicType "Integer") = Right (BasicType "Double")
+-- |First check x with all the supertypes of y, then go higher on the supertypes of x and repeat
+typeMatch x y 
+    | x == y = Right x
+    | isRight match = Right $ fromRightUnsafe match 
+    | otherwise = typeMatch (superType x) y
+    where match = typeMatch x (superType y)
     
--- |Checks whether the first cardinality is included into the second one and returns the most restricted cardinality
-cardinalityIncluded :: Cardinality -> Cardinality -> Either TypeCheckError Cardinality
-cardinalityIncluded x NoBounds = Right x
-cardinalityIncluded NoBounds x = Left $ CardinalityMismatch NoBounds x
+-- |Checks whether the first argument is a subtype of the second argument
+isSubType :: Type -> Type -> Bool
+isSubType (BasicType "Integer") (BasicType "Double") = True
+isSubType _ (BasicType "Any") = True
+isSubType _ (BasicType "Object") = False
+isSubType x y 
+    | x == y = True
+    | otherwise = isSubType (superType x) y
+    
+-- |Checks whether the first cardinality is included into the second one 
+cardinalityIncluded :: Cardinality -> Cardinality -> Bool
+cardinalityIncluded _ NoBounds = True
+cardinalityIncluded NoBounds _ = False
 cardinalityIncluded (OneBound x) (OneBound y)
-    | x >= y = Right $ OneBound x
-    | otherwise = Left $ CardinalityMismatch (OneBound x) (OneBound y)
-cardinalityIncluded (Bounds (x1, x2)) (OneBound y)
-    | x1 >= y = Right $ Bounds (x1, x2)
-    | otherwise = Left $ CardinalityMismatch (Bounds (x1, x2)) (OneBound y)
-cardinalityIncluded (OneBound x) (Bounds (y1, y2)) = Left $ CardinalityMismatch (OneBound x) (Bounds (y1, y2))
+    | x >= y = True
+    | otherwise = False
+cardinalityIncluded (Bounds (x1, _)) (OneBound y)
+    | x1 >= y = True
+    | otherwise = False
+cardinalityIncluded (OneBound _) (Bounds (_, _)) = False
 cardinalityIncluded (Bounds (x1, x2)) (Bounds (y1, y2))
-    | x1 >= y1 && x2 <= y2 = Right $ Bounds (x1, x2)
-    | otherwise = Left $ CardinalityMismatch (Bounds (x1, x2)) (Bounds (y1, y2))
+    | x1 >= y1 && x2 <= y2 = True
+    | otherwise = False
 
 -- |Looks in the symbol map for the type of a variable
 findVarType :: String -> [Symbol] -> Either TypeCheckError (Type, Cardinality)

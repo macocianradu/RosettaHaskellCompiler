@@ -18,20 +18,22 @@ data TypeCheckError =
 -- |Checks whether a data type is valid
 checkType :: [Type] -> Type -> Either [TypeCheckError] Type
 checkType definedTypes (MakeType name super desc attr)
-    | null (lefts checkedAttr) = case checkSuper definedTypes super of
-        Right superChecked -> Right $ MakeType name superChecked desc (rights checkedAttr)
+    | null (lefts checkedAttr) = case populateSuper definedTypes definedTypes super of
+        Right superPopulated -> Right $ MakeType name superPopulated desc (rights checkedAttr)
         Left err -> Left [err]
     | otherwise = Left $ lefts checkedAttr  
     where checkedAttr = checkAttributes definedTypes attr
 checkType _ (BasicType b) = Right (BasicType b)
 
-
-checkSuper :: [Type] -> Maybe Type -> Either TypeCheckError (Maybe Type)
-checkSuper _ Nothing = Right Nothing
-checkSuper definedTypes (Just super) = 
-    case checkAttributeType definedTypes super of
-        Right sup -> Right (Just sup)
+populateSuper :: [Type] -> [Type] -> Type -> Either TypeCheckError Type
+populateSuper _ _ (BasicType "Object") = Right (BasicType "Object")
+populateSuper _ _ (BasicType _) = Left $ UndefinedType "Can't extend basic types"
+populateSuper _ [] t = Left $ UndefinedType (typeName t)
+populateSuper allTypes (currType : types) (MakeType t super d a) 
+    | typeName currType == typeName super = case populateSuper allTypes allTypes currType of
+        Right superChecked -> Right $ MakeType t superChecked d a
         Left err -> Left err
+    | otherwise = populateSuper allTypes types (MakeType t super d a)
 
 -- |Checks whether all the types of the attributes of a data type are already defined
 checkAttributes :: [Type] -> [TypeAttribute] -> [Either TypeCheckError TypeAttribute]

@@ -73,7 +73,7 @@ addNewFunctions (t, s) (_:os) = addNewFunctions (t, s) os
 addNewTypes :: [Type] -> [RosettaObject] -> [Type]
 addNewTypes l [] = l
 addNewTypes defined (TypeObject o: os) = addDefinedTypes (addNewTypes defined os) [o] 
-addNewTypes defined (EnumObject (MakeEnum name _ _): os) = addDefinedTypes (addNewTypes defined os) [MakeType name Nothing Nothing []]
+addNewTypes defined (EnumObject (MakeEnum name _ _): os) = addDefinedTypes (addNewTypes defined os) [MakeType name (BasicType "Object") Nothing []]
 addNewTypes defined (_ :os) = addNewTypes defined os
 
 -- |Parses any supported Rosetta types into a list of RosettaObject

@@ -52,5 +52,5 @@ attributeParser =
         typ <- try (pascalNameParser <|> camelNameParser)
         crd <- cardinalityParser
         desc <- optional descriptionParser
-        return $ MakeTypeAttribute nam (MakeType typ Nothing Nothing []) crd desc
+        return $ MakeTypeAttribute nam (MakeType typ (BasicType "Object") Nothing []) crd desc
         
