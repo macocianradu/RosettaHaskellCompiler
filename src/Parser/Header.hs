@@ -11,11 +11,12 @@ import Text.ParserCombinators.ReadP (many1)
 headerParser :: Parser Header
 headerParser = do
     _ <- lexeme $ string "namespace"
-    name <- namespaceParser
+    name <- lexeme namespaceParser
+    _ <- lexeme $ char ':'
     desc <- optional descriptionParser
     _ <- lexeme $ string "version"
-    vers <- between (char '\"') (char '\"') (many (letterChar <|> char '.' <|> char '$' <|> digitChar))
-    imports <- many importParser
+    vers <- lexeme $ between (string "\"${") (string "}\"") (many (letterChar <|> char '.' <|> char '$' <|> digitChar))
+    imports <- many $ lexeme importParser
     return $ MakeHeader name desc vers imports
 
 importParser :: Parser String

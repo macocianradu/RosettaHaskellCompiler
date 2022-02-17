@@ -19,6 +19,8 @@ import Model.Enum
 import Data.Either
 import Model.Header
 import Parser.Header
+import PrettyPrinter.Header
+import Data.Tuple (fst, snd)
 
 -- :set args resources/testAll.rosetta resources/Generated/testAll.hs
 -- :l resources/Generated/testAll.hs
@@ -30,12 +32,12 @@ main = do
     case parse rosettaParser "" (Text.pack rosettaString) of
         Left errorBundle -> print (errorBundlePretty errorBundle)
         Right objs -> do
-            writeFile (args !! 1) (printObjects (definedTypes, definedFunctions) objs) 
+            writeFile (args !! 1) (printHeader (fst objs) ++ printObjects (definedTypes, definedFunctions) (snd objs)) 
             where 
                 -- |Adds all the function definitions from the file into the symbol table
-                definedFunctions = addNewFunctions (definedTypes, defaultMap) objs
+                definedFunctions = addNewFunctions (definedTypes, defaultMap) (snd objs)
                 -- |Adds all the new data types into the symbol table 
-                definedTypes = addNewTypes [] objs
+                definedTypes = addNewTypes [] (snd objs)
    
 -- |Reads a rosetta string from the first input argument, parses that string and then writes a haskell output to the file given as a second argument   
 printObjects :: ([Type], [Symbol]) -> [RosettaObject] -> String

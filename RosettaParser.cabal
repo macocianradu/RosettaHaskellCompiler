@@ -39,6 +39,7 @@ library
       PrettyPrinter.Enum
       PrettyPrinter.Function
       PrettyPrinter.General
+      PrettyPrinter.Header
       PrettyPrinter.RosettaObject
       PrettyPrinter.Type
       Semantic.ExpressionChecker
