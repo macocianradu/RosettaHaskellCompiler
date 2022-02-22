@@ -9,3 +9,4 @@ data RosettaObject =
     EnumObject EnumType
     | TypeObject Type
     | FunctionObject Function
+    deriving Show

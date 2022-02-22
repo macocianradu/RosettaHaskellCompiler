@@ -45,6 +45,7 @@ library
       Semantic.ExpressionChecker
       Semantic.FunctionChecker
       Semantic.TypeChecker
+      Utils.Utils
   other-modules:
       Paths_RosettaParser
   hs-source-dirs:
