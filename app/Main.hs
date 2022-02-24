@@ -33,6 +33,12 @@ main = do
     args <- getArgs
     let mainFile = head args
     parseResult <- parseWithImport mainFile
+
+    --Start
+    let maps = fstlst parseResult
+    let funcs = concat $ sndlst maps
+    print funcs
+    --END
     let checked = checkObjects parseResult
     let headers = fstlst checked
     let objects = nestedRights $ sndlst checked
@@ -59,7 +65,8 @@ parseWithImport file =
                     let importedTypes = concat $ fstlst importedSymbolTable
                     let importedFunctions = concat $ sndlst importedSymbolTable
                     let definedTypes = addNewTypes importedTypes objs
-                    let definedFunctions = addNewFunctions (definedTypes, importedFunctions) objs
+                    let definedFunctions = addNewFunctions (definedTypes, importedFunctions) objs 
+                    let _ = last definedFunctions
                     return $ ((definedTypes, definedFunctions), (MakeHeader name desc vers imp, objs)) : concat imports
 
 -- |Parse a file into a list of RosettaObjects

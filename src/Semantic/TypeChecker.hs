@@ -2,6 +2,7 @@ module Semantic.TypeChecker where
 
 import Model.Type
 import Data.Either
+import Utils.Utils
 
 -- |A datatype for the different types of type check errors
 data TypeCheckError =
@@ -13,6 +14,7 @@ data TypeCheckError =
    | UndefinedVariable String
    | TypeMismatch String String
    | CardinalityMismatch Cardinality Cardinality
+   | MultipleDeclarations String
    deriving (Show)
 
 -- |Checks whether a data type is valid
@@ -58,18 +60,6 @@ checkAttributeType definedTypes name
 addDefinedTypes :: [Type] -> [Type] -> [Type]
 addDefinedTypes l [] = l
 addDefinedTypes l (BasicType _ : ts) = addDefinedTypes l ts
-addDefinedTypes l (t:ts) = t : addDefinedTypes l ts
-
--- |Auxiliary function to get the right value from an either that stops with an error if the value is left
--- used when it is certain that the value will be right
-fromRightUnsafe :: (Show a) => Either a b -> b
-fromRightUnsafe x = case x of
-    Left a -> error ("Value is Left" ++ show a)
-    Right b -> b
-    
--- |Auxiliary function to get the left value from an either that stops with an error if the value is right
--- used when it is certain that the value will be left
-fromLeftUnsafe :: Either a b -> a
-fromLeftUnsafe x = case x of
-    Left a -> a
-    Right _ -> error "Value is Right"
+addDefinedTypes l (t:ts)
+    | typeName t `elem` map typeName l = error $ "Multiple declarations of " ++ show t
+    | otherwise = t : addDefinedTypes l ts

@@ -5,6 +5,7 @@ import Data.Either
 import Data.Maybe
 import Model.Type
 import Semantic.TypeChecker
+import Utils.Utils
   
 -- |A declared variable or function
 data Symbol = Var{
@@ -59,7 +60,9 @@ defaultMap = [
 -- |Checks whether a function is valid (inputs, outputs are of valid type and all variables are defined) and adds it to the symbol table
 addFunction :: ([Type], [Symbol]) -> Function -> Either [TypeCheckError] [Symbol]
 addFunction (definedTypes, definedSymbols) (MakeFunction name _ inps out _)
-    | null (lefts checkedInputs) && isRight checkedOutput = Right $ Func name (map typeAndCardinality (rights checkedInputs)) (attributeType $ fromRightUnsafe checkedOutput, Model.Type.cardinality out) : definedSymbols
+    | null (lefts checkedInputs) && isRight checkedOutput = if name `elem` map funcName definedSymbols
+        then Left [MultipleDeclarations name]
+        else Right $ Func name (map typeAndCardinality (rights checkedInputs)) (attributeType $ fromRightUnsafe checkedOutput, Model.Type.cardinality out) : definedSymbols
     | isLeft checkedOutput = Left [fromLeftUnsafe checkedOutput]
     | otherwise = Left $  lefts checkedInputs 
     where 

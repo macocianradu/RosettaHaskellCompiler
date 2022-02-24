@@ -5,12 +5,13 @@ module PrettyPrinter.Type where
 import Prettyprinter
 import PrettyPrinter.General
 import Model.Type
+import Utils.Utils
 
 -- |Converts an EnumType into a haskell valid String
 printType :: Type -> String
 printType (MakeType name (MakeType super _ _ _) description attributes) = printType (MakeType name (BasicType "Object") description (superToAttribute name super:attributes))
 printType (MakeType name (BasicType "Object") description attributes) =
-    show $ printDescription description (vcat [nest 4 $ vcat ("data" <+> pretty name <+> "=" <+> "Make" <> pretty name <+> "{": printAttributes attributes), "}", "", emptyDoc])
+    show $ printDescription description (vcat [nest 4 $ vcat ("data" <+> pretty name <+> "=" <+> "Make" <> pretty name <+> "{": printAttributes name attributes), "}", "", emptyDoc])
 printType (MakeType _ (BasicType _) _ _) = error "Can't extend basic types"
 printType (BasicType name) = show $ pretty name
    
@@ -19,16 +20,16 @@ superToAttribute :: String -> String -> TypeAttribute
 superToAttribute name typ = MakeTypeAttribute ("super" ++ name) (MakeType typ (BasicType "Object") Nothing []) (Bounds (1, 1)) (Just "Pointer to super class")  
    
 -- |Converts a list of TypeAttributes into a list of haskell valid Docs 
-printAttributes :: [TypeAttribute] -> [Doc a]
-printAttributes [] = []
-printAttributes [at] = [printAttribute at]
-printAttributes (at : ats) = (printAttribute at <> ",") : printAttributes ats
+printAttributes :: String -> [TypeAttribute] -> [Doc a]
+printAttributes _ [] = []
+printAttributes objName [at] = [printAttribute objName at]
+printAttributes objName (at : ats) = (printAttribute objName at <> ",") : printAttributes objName ats
    
 -- |Converts a TypeAttribute into a haskell valid Doc
-printAttribute :: TypeAttribute -> Doc a
-printAttribute (MakeTypeAttribute name typ crd description) =
+printAttribute :: String -> TypeAttribute -> Doc a
+printAttribute objName (MakeTypeAttribute name typ crd description) =
     printDescription description 
-        (pretty name <+> "::" <+> printCardinality (MakeTypeAttribute name typ crd description))
+        (pretty objName <> pretty (capitalize name) <+> "::" <+> printCardinality (MakeTypeAttribute name typ crd description))
 
 -- |Converts a Cardinality into a haskell valid Doc
 printCardinality :: TypeAttribute -> Doc a

@@ -3,6 +3,11 @@ module Utils.Utils where
 import Data.Either
 import Data.Char
 
+
+-- |Capitalise a string
+capitalize :: String -> String
+capitalize s = toUpper (head s) : tail s
+
 -- |Convert a namespace to a filename
 namespaceToName :: String -> String 
 namespaceToName [] = ".rosetta"
@@ -68,3 +73,18 @@ pairLefts ((a, b) : rst) = (a, lefts b) : pairLefts rst
 pairRights :: [(a, [Either b c])] -> [(a, [c])]
 pairRights [] = []
 pairRights ((a, c) : rst) = (a, rights c) : pairRights rst
+
+
+-- |Auxiliary function to get the right value from an either that stops with an error if the value is left
+-- used when it is certain that the value will be right
+fromRightUnsafe :: Either a b -> b
+fromRightUnsafe x = case x of
+    Left a -> error "Value is Left"
+    Right b -> b
+    
+-- |Auxiliary function to get the left value from an either that stops with an error if the value is right
+-- used when it is certain that the value will be left
+fromLeftUnsafe :: Either a b -> a
+fromLeftUnsafe x = case x of
+    Left a -> a
+    Right _ -> error "Value is Right"
