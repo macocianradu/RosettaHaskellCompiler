@@ -36,15 +36,6 @@ func Something: <"asd">
 
     assign-output: if True and False then valuationTime
 
-func Something: <"asd">
-    inputs:
-      equity1 boolean (1..1)
-      valuationTime ObservationPrimitive (1..1)
-    output:
-      valuation ObservationPrimitive (0..*)
-
-    assign-output: if True and False then valuationTime
-
 func SomethingElse: <"dsa">
     inputs:
       valuationTime ObservationPrimitive (1..1)

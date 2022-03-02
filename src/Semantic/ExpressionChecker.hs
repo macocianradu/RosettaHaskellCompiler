@@ -18,6 +18,15 @@ data Symbol = Var{
    argsType :: [(Type, Cardinality)],
    returnType :: (Type, Cardinality)
    } deriving (Show)
+
+instance Eq Symbol where
+    (==) (Var name1 _ _) (Var name2 _ _)
+        | name1 == name2 = True
+        | otherwise = False
+    (==) (Func name1 _ _) (Func name2 _ _)
+        | name1 == name2 = True
+        | otherwise = False
+    (==) _ _ = False
   
   
 -- |A map of the predefined functions, their arguments and their return type

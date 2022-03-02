@@ -15,6 +15,7 @@ data TypeCheckError =
    | TypeMismatch String String
    | CardinalityMismatch Cardinality Cardinality
    | MultipleDeclarations String
+   | TypeNameReserved String
    deriving (Show)
 
 -- |Checks whether a data type is valid
@@ -57,9 +58,12 @@ checkAttributeType definedTypes name
     | otherwise = Left $ UndefinedType (typeName name)
     
 -- |Add a list of defined types to the symbol table
-addDefinedTypes :: [Type] -> [Type] -> [Type]
-addDefinedTypes l [] = l
-addDefinedTypes l (BasicType _ : ts) = addDefinedTypes l ts
-addDefinedTypes l (t:ts)
-    | typeName t `elem` map typeName l = error $ "Multiple declarations of " ++ show t
-    | otherwise = t : addDefinedTypes l ts
+addDefinedTypes :: [Type] -> [Type] -> Either [TypeCheckError] [Type]
+addDefinedTypes l [] = Right l
+addDefinedTypes l (BasicType t : ts) =  Left [TypeNameReserved t] 
+addDefinedTypes l (t:ts) =
+    case addDefinedTypes l ts of
+        Left error -> Left error
+        Right types -> if typeName t `elem` map typeName l
+            then Left [MultipleDeclarations $ show t]
+            else Right $ t : types

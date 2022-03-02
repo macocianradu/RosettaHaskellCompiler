@@ -4,9 +4,13 @@ import Data.Either
 import Data.Char
 
 
--- |Capitalise a string
+-- |Capitalize a string
 capitalize :: String -> String
 capitalize s = toUpper (head s) : tail s
+
+-- |Uncapitalize a string
+uncapitalize :: String -> String
+uncapitalize s = toLower (head s) : tail s
 
 -- |Convert a namespace to a filename
 namespaceToName :: String -> String 
@@ -74,6 +78,13 @@ pairRights :: [(a, [Either b c])] -> [(a, [c])]
 pairRights [] = []
 pairRights ((a, c) : rst) = (a, rights c) : pairRights rst
 
+
+-- |Check a list for duplicate values. Returns a list with all the values which have duplicates
+checkDuplicates :: Eq a => [a] -> [a]
+checkDuplicates [] = []
+checkDuplicates (a : as)
+    | a `elem` as = a : checkDuplicates as
+    | otherwise = checkDuplicates as
 
 -- |Auxiliary function to get the right value from an either that stops with an error if the value is left
 -- used when it is certain that the value will be right

@@ -1,7 +1,5 @@
 module Model.Type where
 
-import Data.Time.LocalTime()
-
 -- |The representation of a Rosetta data type
 data Type = MakeType {
         typeName :: String,

@@ -29,7 +29,7 @@ printAttributes objName (at : ats) = (printAttribute objName at <> ",") : printA
 printAttribute :: String -> TypeAttribute -> Doc a
 printAttribute objName (MakeTypeAttribute name typ crd description) =
     printDescription description 
-        (pretty objName <> pretty (capitalize name) <+> "::" <+> printCardinality (MakeTypeAttribute name typ crd description))
+        (pretty (uncapitalize objName) <> pretty (capitalize name) <+> "::" <+> printCardinality (MakeTypeAttribute name typ crd description))
 
 -- |Converts a Cardinality into a haskell valid Doc
 printCardinality :: TypeAttribute -> Doc a

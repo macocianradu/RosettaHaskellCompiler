@@ -26,19 +26,14 @@ import Utils.Utils
 import Data.Text (Text)
 
 -- :set args resources/Rosetta/test-all.rosetta
--- :l resources/Generated/testAll.hs
+-- :l resources/Generated/testAll.hs resources/Generated/testPeriod.hs
+
 -- |Reads a rosetta string from the first input argument and writes a haskell output to the file given as a second argument
 main :: IO ()
 main = do
     args <- getArgs
     let mainFile = head args
     parseResult <- parseWithImport mainFile
-
-    --Start
-    let maps = fstlst parseResult
-    let funcs = concat $ sndlst maps
-    print funcs
-    --END
     let checked = checkObjects parseResult
     let headers = fstlst checked
     let objects = nestedRights $ sndlst checked
@@ -64,10 +59,12 @@ parseWithImport file =
                     let importedSymbolTable = fstlst (concat imports)
                     let importedTypes = concat $ fstlst importedSymbolTable
                     let importedFunctions = concat $ sndlst importedSymbolTable
-                    let definedTypes = addNewTypes importedTypes objs
-                    let definedFunctions = addNewFunctions (definedTypes, importedFunctions) objs 
-                    let _ = last definedFunctions
-                    return $ ((definedTypes, definedFunctions), (MakeHeader name desc vers imp, objs)) : concat imports
+                    case addNewTypes importedTypes objs of
+                        Left errors -> error $ show errors
+                        Right definedTypes ->
+                            case addNewFunctions (definedTypes, importedFunctions) objs of
+                                Left errors -> error $ show errors
+                                Right definedFunctions -> return $ ((definedTypes, definedFunctions), (MakeHeader name desc vers imp, objs)) : concat imports
 
 -- |Parse a file into a list of RosettaObjects
 parseFile :: String -> Either (ParseErrorBundle Text Void) (Header, [RosettaObject])
@@ -102,19 +99,22 @@ checkObject (definedTypes, definedFunctions) (FunctionObject fun) =
         Right func -> Right $ FunctionObject func
 
 -- |Adds new defined functions into the symbol table
-addNewFunctions :: ([Type], [Symbol]) -> [RosettaObject] -> [Symbol]
-addNewFunctions (_, s) [] = s
-addNewFunctions (t, s) ((FunctionObject f):os)
-    | isRight definedFunctions = fromRightUnsafe definedFunctions
-    | otherwise = error $ show (fromLeftUnsafe definedFunctions)
-    where definedFunctions = addFunction (t, addNewFunctions (t, s) os) f
+addNewFunctions :: ([Type], [Symbol]) -> [RosettaObject] -> Either [TypeCheckError] [Symbol]
+addNewFunctions (_, s) [] = Right []
+addNewFunctions (t, s) ((FunctionObject f):os) =
+    case addNewFunctions (t, s) os of
+        Left errors -> Left errors
+        Right symbs -> addFunction (t, symbs) f
 addNewFunctions (t, s) (_:os) = addNewFunctions (t, s) os
 
 -- |Adds new defined types into the symbol table
-addNewTypes :: [Type] -> [RosettaObject] -> [Type]
-addNewTypes l [] = l
-addNewTypes defined (TypeObject o: os) = addDefinedTypes (addNewTypes defined os) [o]
-addNewTypes defined (EnumObject (MakeEnum name _ _): os) = addDefinedTypes (addNewTypes defined os) [MakeType name (BasicType "Object") Nothing []]
+addNewTypes :: [Type] -> [RosettaObject] -> Either [TypeCheckError] [Type]
+addNewTypes l [] = Right l
+addNewTypes defined (TypeObject o: os) = 
+    case addNewTypes defined os of
+        Left errors -> Left errors
+        Right types -> addDefinedTypes types [o]
+addNewTypes defined (EnumObject (MakeEnum name _ _): os) = addNewTypes defined (TypeObject (MakeType name (BasicType "Object") Nothing []) : os)
 addNewTypes defined (_ :os) = addNewTypes defined os
 
 -- |Parses any supported Rosetta types into a list of RosettaObject
