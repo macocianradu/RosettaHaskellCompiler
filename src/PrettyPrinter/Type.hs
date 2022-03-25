@@ -9,15 +9,15 @@ import Utils.Utils
 
 -- |Converts an EnumType into a haskell valid String
 printType :: Type -> String
-printType (MakeType name (MakeType super _ _ _) description attributes) = printType (MakeType name (BasicType "Object") description (superToAttribute name super:attributes))
-printType (MakeType name (BasicType "Object") description attributes) =
-    show $ printDescription description (vcat [nest 4 $ vcat ("data" <+> pretty name <+> "=" <+> "Make" <> pretty name <+> "{": printAttributes name attributes), "}", "", emptyDoc])
-printType (MakeType _ (BasicType _) _ _) = error "Can't extend basic types"
+printType (MakeType name (MakeType super _ _ _ _) description attributes conditions) = printType (MakeType name (BasicType "Object") description (superToAttribute super:attributes) conditions)
+printType (MakeType name (BasicType "Object") description attributes conditions) =
+    show $ printDescription description (vcat [nest 4 $ vcat ("data" <+> pretty name <+> "=" <+> "Make" <> pretty name <+> "{": printAttributes name attributes ++ map printCondition conditions), "}", emptyDoc, emptyDoc])
+printType (MakeType _ (BasicType _) _ _ _) = error "Can't extend basic types"
 printType (BasicType name) = show $ pretty name
    
 -- |Creates an attribute that accesses the super type
-superToAttribute :: String -> String -> TypeAttribute
-superToAttribute name typ = MakeTypeAttribute ("super" ++ name) (MakeType typ (BasicType "Object") Nothing []) (Bounds (1, 1)) (Just "Pointer to super class")  
+superToAttribute :: String -> TypeAttribute
+superToAttribute typ = MakeTypeAttribute "super" (MakeType typ (BasicType "Object") Nothing [] []) (Bounds (1, 1)) (Just "Pointer to super class")  
    
 -- |Converts a list of TypeAttributes into a list of haskell valid Docs 
 printAttributes :: String -> [TypeAttribute] -> [Doc a]
@@ -39,3 +39,6 @@ printCardinality (MakeTypeAttribute _ typ (Bounds (x, y)) _)
     | otherwise = "[" <> pretty (typeName typ) <> "]"
 printCardinality (MakeTypeAttribute _ typ NoBounds _) = "[" <> pretty (typeName typ) <> "]"
 printCardinality (MakeTypeAttribute _ typ (OneBound _) _) = "[" <> pretty (typeName typ) <> "]"
+
+printCondition :: Condition -> Doc a
+printCondition (MakeCondition name desc e) = printDescription desc ("--" <+> pretty name <+> pretty (show e))

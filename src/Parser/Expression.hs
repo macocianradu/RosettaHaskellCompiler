@@ -4,6 +4,7 @@ module Parser.Expression where
 
 import Parser.General
 import Model.Function
+import Model.Type (Expression (..))
 import qualified Data.Text as Text
 import Text.Megaparsec
 import Text.Megaparsec.Char

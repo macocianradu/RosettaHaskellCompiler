@@ -14,6 +14,8 @@ type TestZeroOneType extends Period:
 
 type ObservationPrimitive:
     observationPrimitive int (1..1)
+    condition important: <"This is an important condition">
+      observationPrimitive < 0
 
 func EquityPriceObservation: <"Function specification for the observation of an equity price, based on the attributes of the 'EquityValuation' class.">
    inputs:
@@ -21,7 +23,6 @@ func EquityPriceObservation: <"Function specification for the observation of an 
       valuationDate ObservationPrimitive (0..1)
       valuationTime int (0..1)
       timeType TestType (0..1)
-      determinationMethod ObservationPrimitive (1..1)
    output:
       observation ObservationPrimitive (0..1)
 
@@ -38,6 +39,8 @@ func Something: <"asd">
 
 func SomethingElse: <"dsa">
     inputs:
+      num1 int (1..1)
+      num2 int (0..1)
       valuationTime ObservationPrimitive (1..1)
     output:
       valuation ObservationPrimitive (0..1)

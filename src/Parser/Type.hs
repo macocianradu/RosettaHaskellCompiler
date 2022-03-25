@@ -7,25 +7,30 @@ import Text.Megaparsec.Char
 import Text.Megaparsec
 import Data.Maybe
 import Parser.General 
+import Parser.Expression (expressionParser)
   
 -- |Parses a type declaration statement in Rosetta into an Type
 typeParser :: Parser Type
 typeParser = 
     do 
         tName <- try typeNameParser
-        tSuper <- optional superTypeParser
+        tSuper <- superTypeParser
         _ <- lexeme $ char ':'
         tDescription <- optional descriptionParser
         tAttributes <- many $ try typeAttributeParser
-        if isJust tSuper then return (MakeType tName (fromJust tSuper) tDescription tAttributes) else return (MakeType tName (BasicType "Object") tDescription tAttributes)
+        tConditions <- many $ try conditionParser
+        return (MakeType tName tSuper tDescription tAttributes tConditions)
 
 -- |Parses the super class declaration statement in Rosetta into an Type
 superTypeParser :: Parser Type
 superTypeParser =
     do
-        _ <- lexeme $ string "extends"
-        name <- pascalNameParser 
-        return $ MakeType name (BasicType "Object") Nothing []
+        exists <- lexeme $ optional $ string "extends"
+        case exists of
+            Nothing -> return $ BasicType "Object"
+            Just _ -> do
+                name <- pascalNameParser
+                return $ MakeType name (BasicType "Object") Nothing [] []
 
 -- |Parses a declared type attribute in Rosetta into a TypeAttribute
 typeAttributeParser :: Parser TypeAttribute
@@ -35,13 +40,20 @@ typeAttributeParser =
         aType <- try nameParser
         card <- cardinalityParser
         desc <- optional descriptionParser
-        return (MakeTypeAttribute aName (MakeType aType (BasicType "Object") Nothing []) card desc)
+        return (MakeTypeAttribute aName (MakeType aType (BasicType "Object") Nothing [] []) card desc)
 
 -- |Parses the cardinality of a type attribute in Rosetta into a Cardinality
 cardinalityParser :: Parser Cardinality
-cardinalityParser =
-    do
-        try parseBounded <|> try parseSemiBounded <|> try parseUnbounded
+cardinalityParser = try parseBounded <|> try parseSemiBounded <|> try parseUnbounded
+
+-- |Parser the condition of a type attribute in Rosetta into a Condition
+conditionParser :: Parser Condition 
+conditionParser = do
+    _ <- lexeme $ string "condition"
+    name <- lexeme camelNameParser
+    _ <- lexeme $ char ':'
+    description <- optional descriptionParser 
+    MakeCondition name description <$> expressionParser
 
 -- |Parses a bounded cardinality statement in Rosetta into a Cardinality
 parseBounded :: Parser Cardinality

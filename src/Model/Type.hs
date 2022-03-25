@@ -5,7 +5,8 @@ data Type = MakeType {
         typeName :: String,
         superType :: Type,
         typeDescription :: Maybe String,
-        typeAttributes :: [TypeAttribute]
+        typeAttributes :: [TypeAttribute],
+        conditions :: [Condition]
     }
     | BasicType {
         typeName :: String
@@ -13,7 +14,7 @@ data Type = MakeType {
     deriving (Show)
 
 instance Eq Type where
-    (==) (MakeType name _ _ _) (MakeType name2 _ _ _) 
+    (==) (MakeType name _ _ _ _) (MakeType name2 _ _ _ _) 
         | name == name2 = True
         | otherwise = False 
     (==) (BasicType name) (BasicType name2)
@@ -21,6 +22,27 @@ instance Eq Type where
         | otherwise = False
     (==) _ _ = False
 
+data Condition = MakeCondition {
+    conditionName :: String,
+    conditionDescription :: Maybe String,
+    expressionExpression :: Expression
+} deriving (Show)
+     
+-- |The representation of an expression
+data Expression = Variable String
+    | Int String
+    | Real String
+    | Boolean String
+    | Empty
+    | Parens Expression
+    | List [Expression]
+    | Function String [Expression]
+    | PrefixExp String Expression
+    | PostfixExp String Expression
+    | InfixExp String Expression Expression
+    | IfSimple Expression Expression
+    | IfElse Expression Expression Expression
+    deriving (Eq, Show)
 
 -- |The representation of an attribute of a data type
 data TypeAttribute = MakeTypeAttribute {
@@ -81,10 +103,13 @@ typeAndCardinality (MakeTypeAttribute _ typ crd _) = (typ, crd)
 -- |Checks whether the first argument is a subtype of the second argument
 isSubType :: Type -> Type -> Bool
 isSubType (BasicType "Integer") (BasicType "Double") = True
-isSubType _ (BasicType "Any") = True
-isSubType _ (BasicType "Object") = False
+isSubType _ (BasicType "Object") = True
+isSubType _ (BasicType "Any") = False
+isSubType (BasicType x) y 
+    | x == typeName y = True
+    | otherwise = False
 isSubType x y 
-    | x == y = True
+    | typeName x == typeName y = True
     | otherwise = isSubType (superType x) y
     
 -- |Checks whether the first cardinality is included into the second one 
@@ -101,3 +126,10 @@ cardinalityIncluded (OneBound _) (Bounds (_, _)) = False
 cardinalityIncluded (Bounds (x1, x2)) (Bounds (y1, y2))
     | x1 >= y1 && x2 <= y2 = True
     | otherwise = False
+
+toHaskell :: Type -> Type
+toHaskell a
+    | typeName a == "int" = BasicType "Integer"
+    | typeName a == "boolean" = BasicType "Boolean"
+    | typeName a == "real" = BasicType "Double"
+    | otherwise = a

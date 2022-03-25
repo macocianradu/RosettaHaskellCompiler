@@ -114,7 +114,7 @@ addNewTypes defined (TypeObject o: os) =
     case addNewTypes defined os of
         Left errors -> Left errors
         Right types -> addDefinedTypes types [o]
-addNewTypes defined (EnumObject (MakeEnum name _ _): os) = addNewTypes defined (TypeObject (MakeType name (BasicType "Object") Nothing []) : os)
+addNewTypes defined (EnumObject (MakeEnum name _ _): os) = addNewTypes defined (TypeObject (MakeType name (BasicType "Object") Nothing [] []) : os)
 addNewTypes defined (_ :os) = addNewTypes defined os
 
 -- |Parses any supported Rosetta types into a list of RosettaObject

@@ -81,7 +81,7 @@ addFunction (definedTypes, definedSymbols) (MakeFunction name _ inps out _)
 -- |Adds a newly defined variable to the symbol table
 addVariables :: [Symbol] -> [TypeAttribute] -> [Symbol]
 addVariables s [] = s
-addVariables s ((MakeTypeAttribute name typ crd _)  : vars) = Var name typ crd : addVariables s vars
+addVariables s ((MakeTypeAttribute name typ crd _)  : vars) = Var name (toHaskell typ) crd : addVariables s vars
         
 -- |Checks the type of a given expression
 checkExpression :: [Symbol] -> Expression -> Either TypeCheckError (Type, Cardinality)
@@ -109,14 +109,13 @@ checkExpression symbolMap (IfSimple cond ex)
         checkedExp = checkExpression symbolMap ex
 -- |Checks if the condition of the if statement is of type boolean, and then checks that both the then and else statements have the same type
 checkExpression symbolMap (IfElse cond ex1 ex2)
-    | isLeft condType || isSubType (fst $ fromRightUnsafe condType) (BasicType "Boolean") && snd (fromRightUnsafe condType) == Bounds (1, 1) = Left $ IfConditionNotBoolean $ show cond
-    | isLeft ex1Type || isLeft ex2Type || 
-        isLeft (typeMatch (fst $ fromRightUnsafe ex1Type) (fst $ fromRightUnsafe ex2Type)) || 
-        snd (fromRightUnsafe ex1Type) /= snd (fromRightUnsafe ex2Type) = Left $ IfExpressionsDifferentTypes (show ex1) (show ex2)
-    | otherwise = ex1Type
+    | isLeft condType || not (isSubType (fst $ fromRightUnsafe condType) (BasicType "Boolean") && snd (fromRightUnsafe condType) == Bounds (1, 1)) = Left $ IfConditionNotBoolean $ show cond ++ " :: " ++ show condType
+    | otherwise = case checkExpression symbolMap ex1 of
+        Left err -> Left $ ErrorInsideFunction $ show err
+        Right ex1Type -> case checkExpression symbolMap ex2 of
+            Left err -> Left $ ErrorInsideFunction $ show err
+            Right ex2Type -> Right (typeMatch (fst ex1Type) (fst ex2Type), smallestBound (snd ex1Type) (snd ex2Type))
     where   condType = checkExpression symbolMap cond
-            ex1Type = checkExpression symbolMap ex1
-            ex2Type = checkExpression symbolMap ex2
 
 -- |Checks that all the expressions in a list have compatible types
 checkList :: [Symbol] -> [Expression] -> Either TypeCheckError (Type, Cardinality)
@@ -144,7 +143,7 @@ checkFunctionCall :: [Symbol] -> String -> [Either TypeCheckError (Type, Cardina
 checkFunctionCall [] fun args = Left $ UndefinedFunction $ "Undefined function: \"" ++ fun ++ "\" [" ++ show (rights args) ++ "]"
 checkFunctionCall ((Func n a r):symbolMap) name args
     | length right /= length args = Left $ ErrorInsideFunction (name ++ ": " ++ show args ++ show (lefts args))
-    | name == n && all isRight (zipWith typeIncluded a right) = Right r
+    | name == n && all isRight (zipWith typeIncluded right a) = Right r
     | otherwise = checkFunctionCall symbolMap name args
     where 
         right = rights args
@@ -156,23 +155,21 @@ typeIncluded (t1, c1) (t2, c2)
     | t1 `isSubType` t2 = Left $ CardinalityMismatch c1 c2
     | otherwise = Left $ TypeMismatch (typeName t1) (typeName t2)
 
--- |Checks whether two types are compatible (i.e. they have a common super type)
-typeMatch :: Type -> Type -> Either TypeCheckError Type
--- |An object matches only with object
-typeMatch (BasicType "Object") _ = Right $ BasicType "Object"
-typeMatch _ (BasicType "Object") = Right $ BasicType "Object"
+-- |Finds the most specific super type of the two types
+typeMatch :: Type -> Type -> Type
 -- |Any matches with any type
-typeMatch (BasicType "Any") x = Right x
-typeMatch x (BasicType "Any") = Right x
+typeMatch (BasicType "Any") x = x
+typeMatch x (BasicType "Any") = x
 -- |Integer can be a double
-typeMatch (BasicType "Integer") (BasicType "Double") = Right (BasicType "Double")
-typeMatch (BasicType "Double") (BasicType "Integer") = Right (BasicType "Double")
+-- typeMatch (BasicType "Integer") (BasicType "Double") = BasicType "Double"
+-- typeMatch (BasicType "Double") (BasicType "Integer") = BasicType "Double"
+typeMatch x (BasicType y) 
+    | x `isSubType` BasicType y = x
+    | otherwise = BasicType "Object"
 -- |First check x with all the supertypes of y, then go higher on the supertypes of x and repeat
-typeMatch x y 
-    | x == y = Right x
-    | isRight match = Right $ fromRightUnsafe match 
-    | otherwise = typeMatch (superType x) y
-    where match = typeMatch x (superType y)
+typeMatch x y
+    | x `isSubType` y = x
+    | otherwise = typeMatch x (superType y)
 
 -- |Looks in the symbol map for the type of a variable
 findVarType :: String -> [Symbol] -> Either TypeCheckError (Type, Cardinality)
