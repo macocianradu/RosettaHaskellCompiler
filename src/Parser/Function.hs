@@ -20,7 +20,7 @@ functionParser =
         fDescription <- optional descriptionParser
         fInput <- inputAttributesParser
         fOutput <- outputAttributeParser
-        MakeFunction fName fDescription fInput fOutput <$> assignmentParser
+        MakeFunction (MakeFunctionSignature fName fDescription fInput fOutput) <$> assignmentParser
 
 -- |Parses the output assignment statement from a function in Rosetta into an Expression
 assignmentParser :: Parser Expression

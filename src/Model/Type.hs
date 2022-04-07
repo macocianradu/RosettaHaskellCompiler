@@ -1,5 +1,4 @@
 module Model.Type where
-
 -- |The representation of a Rosetta data type
 data Type = MakeType {
         typeName :: String,
@@ -14,9 +13,9 @@ data Type = MakeType {
     deriving (Show)
 
 instance Eq Type where
-    (==) (MakeType name _ _ _ _) (MakeType name2 _ _ _ _) 
+    (==) (MakeType name _ _ _ _) (MakeType name2 _ _ _ _)
         | name == name2 = True
-        | otherwise = False 
+        | otherwise = False
     (==) (BasicType name) (BasicType name2)
         | name == name2 = True
         | otherwise = False
@@ -27,7 +26,7 @@ data Condition = MakeCondition {
     conditionDescription :: Maybe String,
     expressionExpression :: Expression
 } deriving (Show)
-     
+
 -- |The representation of an expression
 data Expression = Variable String
     | Int String
@@ -44,6 +43,31 @@ data Expression = Variable String
     | IfElse Expression Expression Expression
     deriving (Eq, Show)
 
+data ExplicitExpression = ExplicitEmpty
+    | ExplicitVariable {name :: String, returnCoercion :: Coercion}
+    | Value {returnCoercion :: Coercion}
+    | ExplicitList [ExplicitExpression]
+    | ExplicitParens ExplicitExpression
+    | ExplicitFunction {name :: String, args :: [Coercion], returnCoercion :: Coercion}
+    | ExplicitIfSimple {cond :: Coercion, returnCoercion :: Coercion}
+    | ExplicitIfEsle {cond :: Coercion, args :: [Coercion], returnCoercion :: Coercion}
+    deriving (Show)
+
+data TypeCoercion =
+    MakeIdCoercion {toType :: Type}
+    | MakeSuperCoercion {fromType :: Type, toType :: Type}
+    | MakeTypeCoercion {fromType :: Type, toType :: Type, transformType :: String}
+    deriving (Show)
+
+data CardinalityCoercion =
+    MakeCardinalityIdCoercion {toCardinality :: Cardinality}
+    | MakeCardinalityCoercion {fromCardinality :: Cardinality, toCardinality :: Cardinality, transformCardinality :: String}
+    deriving (Show)
+
+-- |Used to handle polymorphism in Rosetta
+data Coercion = MakeCoercion {typeCoercion :: [TypeCoercion], cardinalityCoercion :: CardinalityCoercion} deriving(Show)
+
+
 -- |The representation of an attribute of a data type
 data TypeAttribute = MakeTypeAttribute {
     attributeName :: String,
@@ -53,27 +77,22 @@ data TypeAttribute = MakeTypeAttribute {
 } deriving (Show)
 
 -- |The representation of cardinality
-data Cardinality = 
+data Cardinality =
     -- |The cardinality between two bounds (ex. 2 - 5)
   Bounds (Integer, Integer)
     -- |The cardinality starting from one bound until infinity (ex. 5 - *)
   | OneBound Integer
-    -- |The cardinality of no bounds (ex. * - *)
-  | NoBounds 
   deriving Show
-  
+
 instance Eq Cardinality where
     (==) (Bounds (x1, x2)) (Bounds (y1, y2))
         | x1 == y1 && x2 == y2 = True
         | otherwise = False
     (==) (OneBound x) (OneBound y) = x == y
-    (==) NoBounds NoBounds = True
     (==) _ _ = False
 
 -- |Function to create the smallest cardinality that includes two others
 smallestBound  :: Cardinality -> Cardinality -> Cardinality
-smallestBound NoBounds _ = NoBounds
-smallestBound _ NoBounds = NoBounds
 smallestBound (OneBound x) (OneBound y) = OneBound $ min x y
 smallestBound (OneBound x) (Bounds (y, _)) = smallestBound (OneBound x) (OneBound y)
 smallestBound (Bounds (x, _)) (OneBound y) = smallestBound (OneBound x) (OneBound y)
@@ -83,49 +102,16 @@ smallestBound (Bounds (x1, x2)) (Bounds (y1, y2)) = Bounds (min x1 y1, max x2 y2
 addBounds :: Cardinality -> Cardinality -> Cardinality
 addBounds (Bounds (x1, x2)) (Bounds (y1, y2)) = Bounds (x1 + y1, x2 + y2)
 addBounds (Bounds (x1, _)) (OneBound y1) = OneBound (x1 + y1)
-addBounds (Bounds (x1, _)) NoBounds = OneBound x1
 addBounds (OneBound x1) (Bounds (y1, y2)) = addBounds (Bounds (y1, y2)) (OneBound x1)
 addBounds (OneBound x1) (OneBound y1) = OneBound (x1 + y1)
-addBounds (OneBound x1) NoBounds = OneBound x1
-addBounds NoBounds (Bounds (y1, y2)) = addBounds (Bounds (y1, y2)) NoBounds
-addBounds NoBounds (OneBound y1) = addBounds (OneBound y1) NoBounds
-addBounds NoBounds NoBounds = NoBounds 
-    
+
 -- |Custom operator for adding cardinalities
 infixl 5 .+
 (.+) :: Cardinality -> Cardinality -> Cardinality
 (.+) = addBounds
-  
+
 typeAndCardinality :: TypeAttribute -> (Type, Cardinality)
 typeAndCardinality (MakeTypeAttribute _ typ crd _) = (typ, crd)
-
-    
--- |Checks whether the first argument is a subtype of the second argument
-isSubType :: Type -> Type -> Bool
-isSubType (BasicType "Integer") (BasicType "Double") = True
-isSubType _ (BasicType "Object") = True
-isSubType _ (BasicType "Any") = False
-isSubType (BasicType x) y 
-    | x == typeName y = True
-    | otherwise = False
-isSubType x y 
-    | typeName x == typeName y = True
-    | otherwise = isSubType (superType x) y
-    
--- |Checks whether the first cardinality is included into the second one 
-cardinalityIncluded :: Cardinality -> Cardinality -> Bool
-cardinalityIncluded _ NoBounds = True
-cardinalityIncluded NoBounds _ = False
-cardinalityIncluded (OneBound x) (OneBound y)
-    | x >= y = True
-    | otherwise = False
-cardinalityIncluded (Bounds (x1, _)) (OneBound y)
-    | x1 >= y = True
-    | otherwise = False
-cardinalityIncluded (OneBound _) (Bounds (_, _)) = False
-cardinalityIncluded (Bounds (x1, x2)) (Bounds (y1, y2))
-    | x1 >= y1 && x2 <= y2 = True
-    | otherwise = False
 
 toHaskell :: Type -> Type
 toHaskell a
@@ -133,3 +119,17 @@ toHaskell a
     | typeName a == "boolean" = BasicType "Boolean"
     | typeName a == "real" = BasicType "Double"
     | otherwise = a
+
+coercionType :: [TypeCoercion] -> Type
+coercionType [] = BasicType "Empty"
+coercionType [x] = toType x 
+coercionType (x:rst) = coercionType rst
+
+-- |Gets the final cardinality from a list of coercions
+coercionCardinality :: [CardinalityCoercion] -> Cardinality
+coercionCardinality [] = OneBound 0
+coercionCardinality [x] = toCardinality x
+coercionCardinality (x:rst) = coercionCardinality rst
+
+createCoercion :: (Type, Cardinality) -> Coercion
+createCoercion (t, c) = MakeCoercion [MakeIdCoercion t] (MakeCardinalityIdCoercion c)

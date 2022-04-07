@@ -41,10 +41,10 @@ populateSuper allTypes (currType : types) (MakeType t super d a c)
 -- |Checks whether all the types of the attributes of a data type are already defined
 checkAttributes :: [Type] -> [TypeAttribute] -> [Either TypeCheckError TypeAttribute]
 checkAttributes _ [] = []
-checkAttributes definedTypes ((MakeTypeAttribute name typ crd desc):as)
-    | isRight checked = Right (MakeTypeAttribute name (fromRightUnsafe checked) crd desc) : checkAttributes definedTypes as
-    | otherwise = Left (fromLeftUnsafe checked) : checkAttributes definedTypes as
-    where checked = checkAttributeType definedTypes typ 
+checkAttributes definedTypes ((MakeTypeAttribute name typ crd desc):as) =
+    case checkAttributeType definedTypes typ of
+        Left err -> Left err : checkAttributes definedTypes as
+        Right checked -> Right (MakeTypeAttribute name checked crd desc) : checkAttributes definedTypes as 
 
 -- |Checks whether a type is predefined or in the symbol table
 checkAttributeType :: [Type] -> Type -> Either TypeCheckError Type

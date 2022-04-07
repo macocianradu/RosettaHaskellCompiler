@@ -85,17 +85,3 @@ checkDuplicates [] = []
 checkDuplicates (a : as)
     | a `elem` as = a : checkDuplicates as
     | otherwise = checkDuplicates as
-
--- |Auxiliary function to get the right value from an either that stops with an error if the value is left
--- used when it is certain that the value will be right
-fromRightUnsafe :: Either a b -> b
-fromRightUnsafe x = case x of
-    Left a -> error "Value is Left"
-    Right b -> b
-    
--- |Auxiliary function to get the left value from an either that stops with an error if the value is right
--- used when it is certain that the value will be left
-fromLeftUnsafe :: Either a b -> a
-fromLeftUnsafe x = case x of
-    Left a -> a
-    Right _ -> error "Value is Right"

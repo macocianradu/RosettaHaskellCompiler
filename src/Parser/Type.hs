@@ -44,7 +44,7 @@ typeAttributeParser =
 
 -- |Parses the cardinality of a type attribute in Rosetta into a Cardinality
 cardinalityParser :: Parser Cardinality
-cardinalityParser = try parseBounded <|> try parseSemiBounded <|> try parseUnbounded
+cardinalityParser = try parseBounded <|> try parseSemiBounded
 
 -- |Parser the condition of a type attribute in Rosetta into a Condition
 conditionParser :: Parser Condition 
@@ -74,13 +74,6 @@ parseSemiBounded =
         low <- lexeme $ many digitChar
         _ <- lexeme $ string "..*)"
         return $ OneBound $ read low
-        
--- |Parses an unbounded cardinality statement in Rosetta into a Cardinality
-parseUnbounded :: Parser Cardinality
-parseUnbounded = 
-    do
-        _ <- lexeme $ string "(*..*)"
-        return NoBounds
 
 -- |Parses the name of a type in Rosetta into a String
 typeNameParser :: Parser String

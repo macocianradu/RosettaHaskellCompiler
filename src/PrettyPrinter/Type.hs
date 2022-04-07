@@ -37,7 +37,6 @@ printCardinality (MakeTypeAttribute _ typ (Bounds (x, y)) _)
     | x == 0 && y == 1 = "Maybe" <+> pretty (typeName typ)
     | x == 1 && y == 1 = pretty (typeName typ)
     | otherwise = "[" <> pretty (typeName typ) <> "]"
-printCardinality (MakeTypeAttribute _ typ NoBounds _) = "[" <> pretty (typeName typ) <> "]"
 printCardinality (MakeTypeAttribute _ typ (OneBound _) _) = "[" <> pretty (typeName typ) <> "]"
 
 printCondition :: Condition -> Doc a
