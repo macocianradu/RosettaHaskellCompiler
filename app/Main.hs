@@ -10,6 +10,7 @@ import Text.Megaparsec
 import PrettyPrinter.Enum
 import PrettyPrinter.Type
 import PrettyPrinter.Function
+import PrettyPrinter.RosettaObject
 import Semantic.TypeChecker
 import Semantic.ExpressionChecker
 import Semantic.FunctionChecker
@@ -71,32 +72,32 @@ parseFile :: String -> Either (ParseErrorBundle Text Void) (Header, [RosettaObje
 parseFile plainText = parse rosettaParser "" (Text.pack plainText)
 
 -- |Converts a RosettaObject into a plain haskell string
-printObject :: RosettaObject -> String
-printObject (TypeObject t) = printType t
-printObject (FunctionObject f) = printFunction f
-printObject (EnumObject e) = printEnum e
+-- printObject :: CheckedRosettaObject -> String
+-- printObject (CheckedTypeObject t) = printType t
+-- printObject (CheckedFunctionObject f) = printFunction f
+-- printObject (CheckedEnumObject e) = printEnum e
 
 -- |Checks all the objects from a list
-checkObjects :: [(([Type], [Symbol]), (Header, [RosettaObject]))] -> [(Header, [Either [TypeCheckError] RosettaObject])]
+checkObjects :: [(([Type], [Symbol]), (Header, [RosettaObject]))] -> [(Header, [Either [TypeCheckError] CheckedRosettaObject])]
 checkObjects [] = []
 checkObjects (((definedTypes, definedSymbols), (header, objs)) : rest) = (header, checked) : checkObjects rest
     where
         checked = map (checkObject (definedTypes, definedSymbols)) objs
 
 -- |Checks the RosettaObject for type errors
-checkObject :: ([Type], [Symbol]) -> RosettaObject -> Either [TypeCheckError] RosettaObject
+checkObject :: ([Type], [Symbol]) -> RosettaObject -> Either [TypeCheckError] CheckedRosettaObject
 -- |Checks the type and attributes of a type
 checkObject (definedTypes, _) (TypeObject t) =
     case checkType definedTypes t of
         Left errors -> Left errors
-        Right typ -> Right $ TypeObject typ
+        Right typ -> Right $ CheckedTypeObject typ
 -- |If an enum parses, it cannot throw an error
-checkObject _ (EnumObject e) = Right (EnumObject e)
+checkObject _ (EnumObject e) = Right $ CheckedEnumObject e
 -- |Checks the function inputs, output and assignment
 checkObject (definedTypes, definedFunctions) (FunctionObject fun) =
     case checkFunction (definedTypes, defaultMap ++ definedFunctions) fun of
         Left errors -> Left errors
-        Right func -> Right $ FunctionObject func
+        Right func -> Right $ CheckedFunctionObject func
 
 -- |Adds new defined functions into the symbol table
 addNewFunctions :: ([Type], [Symbol]) -> [RosettaObject] -> Either [TypeCheckError] [Symbol]
@@ -140,5 +141,5 @@ parseFunction = do
     FunctionObject <$> functionParser
 
 -- |Generate a new haskell file based on the rosetta objects and header
-generateFile :: (Header, [RosettaObject]) -> IO ()
-generateFile (header, objects) = writeFile (haskellFileName $ namespace header) (printHeader header ++ concatMap printObject objects)
+generateFile :: (Header, [CheckedRosettaObject]) -> IO ()
+generateFile (header, objects) = writeFile (haskellFileName $ namespace header) (printHeader header ++ concatMap printRosettaObject objects)

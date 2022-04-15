@@ -45,12 +45,12 @@ data Expression = Variable String
 
 data ExplicitExpression = ExplicitEmpty
     | ExplicitVariable {name :: String, returnCoercion :: Coercion}
-    | Value {returnCoercion :: Coercion}
+    | Value {name :: String, returnCoercion :: Coercion}
     | ExplicitList [ExplicitExpression]
     | ExplicitParens ExplicitExpression
-    | ExplicitFunction {name :: String, args :: [Coercion], returnCoercion :: Coercion}
-    | ExplicitIfSimple {cond :: Coercion, returnCoercion :: Coercion}
-    | ExplicitIfEsle {cond :: Coercion, args :: [Coercion], returnCoercion :: Coercion}
+    | ExplicitFunction {name :: String, args :: [(ExplicitExpression, Coercion)], returnCoercion :: Coercion}
+    | ExplicitIfSimple {cond :: (ExplicitExpression, Coercion), block1 :: (ExplicitExpression, Coercion), returnCoercion :: Coercion}
+    | ExplicitIfElse {cond :: (ExplicitExpression, Coercion), block1 :: (ExplicitExpression, Coercion), block2 :: (ExplicitExpression, Coercion), returnCoercion :: Coercion}
     deriving (Show)
 
 data TypeCoercion =
@@ -61,7 +61,12 @@ data TypeCoercion =
 
 data CardinalityCoercion =
     MakeCardinalityIdCoercion {toCardinality :: Cardinality}
-    | MakeCardinalityCoercion {fromCardinality :: Cardinality, toCardinality :: Cardinality, transformCardinality :: String}
+    | MakeListCardinalityCoercion {fromCardinality :: Cardinality, toCardinality :: Cardinality}
+    | MakeNothing2MaybeCoercion {fromCardinality :: Cardinality, toCardinality :: Cardinality}
+    | MakeNothing2ListCoercion {fromCardinality :: Cardinality, toCardinality :: Cardinality}
+    | MakeMaybe2ListCoercion {fromCardinality :: Cardinality, toCardinality :: Cardinality}
+    | MakeObject2MaybeCoercion {fromCardinality :: Cardinality, toCardinality :: Cardinality}
+    | MakeObject2ListCoercion {fromCardinality :: Cardinality, toCardinality :: Cardinality}
     deriving (Show)
 
 -- |Used to handle polymorphism in Rosetta

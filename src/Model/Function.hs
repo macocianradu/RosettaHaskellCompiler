@@ -24,3 +24,4 @@ data ExplicitFunction =
         sign :: FunctionSignature,
         explicitAssignment :: ExplicitExpression 
     }
+    deriving Show

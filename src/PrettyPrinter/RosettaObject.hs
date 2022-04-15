@@ -6,7 +6,7 @@ import PrettyPrinter.Function
 import PrettyPrinter.Type
   
 -- |Converts a supported Rosetta object into a haskell valid String
-printRosettaObject :: RosettaObject -> String
-printRosettaObject (EnumObject a) = printEnum a
-printRosettaObject (TypeObject a) = printType a
-printRosettaObject (FunctionObject a) = printFunction a
+printRosettaObject :: CheckedRosettaObject -> String
+printRosettaObject (CheckedEnumObject a) = printEnum a
+printRosettaObject (CheckedTypeObject a) = printType a
+printRosettaObject (CheckedFunctionObject a) = printFunction a

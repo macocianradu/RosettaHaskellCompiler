@@ -10,3 +10,9 @@ data RosettaObject =
     | TypeObject Type
     | FunctionObject Function
     deriving Show
+
+data CheckedRosettaObject =
+    CheckedEnumObject EnumType
+    | CheckedTypeObject Type
+    | CheckedFunctionObject ExplicitFunction
+    deriving Show

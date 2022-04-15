@@ -6,6 +6,7 @@ import Data.Maybe
 import Model.Type
 import Semantic.TypeChecker
 import Utils.Utils
+import Model.Type (CardinalityCoercion(MakeNothing2MaybeCoercion, MakeNothing2ListCoercion, MakeMaybe2ListCoercion, MakeObject2MaybeCoercion, MakeObject2ListCoercion))
   
 -- |A declared variable or function
 data Symbol = Var{
@@ -87,10 +88,10 @@ addVariables s ((MakeTypeAttribute name typ crd _)  : vars) = Var name (toHaskel
 -- |Checks the type of a given expression
 checkExpression :: [Symbol] -> Expression -> Either TypeCheckError ExplicitExpression  
 checkExpression symbolMap (Variable var) = findVarType var symbolMap 
-checkExpression _ (Int _) = Right $ Value $ MakeCoercion [MakeIdCoercion (BasicType "Integer")] (MakeCardinalityIdCoercion (Bounds (1, 1)))
-checkExpression _ (Real _) = Right $ Value $ MakeCoercion [MakeIdCoercion (BasicType "Double")] (MakeCardinalityIdCoercion (Bounds (1, 1)))
-checkExpression _ (Boolean _) = Right $ Value $ MakeCoercion [MakeIdCoercion (BasicType "Boolean")] (MakeCardinalityIdCoercion (Bounds (1, 1)))
-checkExpression _ Empty = Right $ Value $ MakeCoercion [MakeIdCoercion (BasicType "Empty")] (MakeCardinalityIdCoercion (Bounds (0, 0)))
+checkExpression _ (Int val) = Right $ Value val $ MakeCoercion [MakeIdCoercion (BasicType "Integer")] (MakeCardinalityIdCoercion (Bounds (1, 1)))
+checkExpression _ (Real val) = Right $ Value val $ MakeCoercion [MakeIdCoercion (BasicType "Double")] (MakeCardinalityIdCoercion (Bounds (1, 1)))
+checkExpression _ (Boolean val) = Right $ Value val $ MakeCoercion [MakeIdCoercion (BasicType "Boolean")] (MakeCardinalityIdCoercion (Bounds (1, 1)))
+checkExpression _ Empty = Right $ Value "empty" $ MakeCoercion [MakeIdCoercion (BasicType "Empty")] (MakeCardinalityIdCoercion (Bounds (0, 0)))
 checkExpression symbolMap (Parens ex) = 
     case checkExpression symbolMap ex of
         Left err -> Left err
@@ -104,34 +105,34 @@ checkExpression symbolMap (InfixExp name ex1 ex2) = checkFunctionCall symbolMap 
 checkExpression symbolMap (IfSimple cond ex) =
     case checkExpression symbolMap cond of
         Left err -> Left $ IfConditionNotBoolean $ show err
-        Right condType -> case coercionType conditionPreCoercion `isSubType` BasicType "Boolean" of
-            Left err -> Left $ IfConditionNotBoolean $ show cond ++ " :: " ++ show (coercionType conditionPreCoercion)
+        Right condType -> case returnCoercion condType `coercionIncluded` MakeCoercion [MakeIdCoercion (BasicType "Boolean")] (MakeCardinalityIdCoercion (Bounds (1, 1))) of
+            Left err -> Left $ IfConditionNotBoolean $ show cond ++ " :: " ++ show (coercionType $ typeCoercion $ returnCoercion condType)
             Right condCoerce -> 
                 case checkExpression symbolMap ex of
                     Left err -> Left err
-                    Right thenCoerce -> 
-                        Right $ ExplicitIfSimple 
-                            (MakeCoercion (condCoerce ++ conditionPreCoercion) (cardinalityCoercion $ returnCoercion condType)) (returnCoercion thenCoerce)
-            where
-                conditionPreCoercion = typeCoercion $ returnCoercion condType
+                    Right thenExp -> 
+                        Right $ ExplicitIfSimple (condType, condCoerce) 
+                        (thenExp, MakeCoercion [MakeIdCoercion $ coercionType $ typeCoercion $ returnCoercion thenExp]
+                         (MakeCardinalityIdCoercion $ toCardinality $ cardinalityCoercion $ returnCoercion thenExp)) (returnCoercion thenExp)
+
 -- |Checks if the condition of the if statement is of type boolean, and then checks that both the then and else statements have the same type
 checkExpression symbolMap (IfElse cond ex1 ex2) =
     case checkExpression symbolMap cond of
         Left err -> Left $ IfConditionNotBoolean $ show err
-        Right condType -> 
-            case coercionType conditionPreCoercion `isSubType` BasicType "Boolean" of
-                Left err -> Left $ IfConditionNotBoolean $ show cond ++ " :: " ++ show (coercionType conditionPreCoercion)
-                Right condCoerce -> 
-                    case checkExpression symbolMap ex1 of
+        Right condType -> case returnCoercion condType `coercionIncluded` MakeCoercion [MakeIdCoercion (BasicType "Boolean")] (MakeCardinalityIdCoercion (Bounds (1, 1))) of
+            Left err -> Left $ IfConditionNotBoolean $ show cond ++ " :: " ++ show (coercionType $ typeCoercion $ returnCoercion condType)
+            Right condCoerce -> 
+                case checkExpression symbolMap ex1 of
+                    Left err -> Left $ ErrorInsideFunction $ show err
+                    Right thenExp -> case checkExpression symbolMap ex2 of
                         Left err -> Left $ ErrorInsideFunction $ show err
-                        Right ex1Checked -> case checkExpression symbolMap ex2 of
-                            Left err -> Left $ ErrorInsideFunction $ show err
-                            Right ex2Checked -> Right $ ExplicitIfEsle 
-                                (MakeCoercion (condCoerce ++ conditionPreCoercion) (cardinalityCoercion $ returnCoercion condType)) 
-                                (returnCoercion ex1Checked : [returnCoercion ex2Checked]) (returnCoercion ex1Checked)
-                            --(typeMatch ex1Type ex2Type, smallestBound ex1Card ex2Type)
-            where
-                conditionPreCoercion = typeCoercion $ returnCoercion condType
+                        Right elseExp -> 
+                            Right $ ExplicitIfElse (condType, condCoerce) 
+                            (thenExp, MakeCoercion [MakeIdCoercion $ coercionType $ typeCoercion $ returnCoercion thenExp]
+                             (MakeCardinalityIdCoercion $ toCardinality $ cardinalityCoercion $ returnCoercion thenExp))
+                            (elseExp, MakeCoercion [MakeIdCoercion $ coercionType $ typeCoercion $ returnCoercion elseExp]
+                             (MakeCardinalityIdCoercion $ toCardinality $ cardinalityCoercion $ returnCoercion elseExp)) (returnCoercion thenExp)
+                        --(typeMatch ex1Type ex2Type, smallestBound ex1Card ex2Type)
                 
 
 -- |TODO Handle nested lists and lists with parens
@@ -168,7 +169,7 @@ checkFunctionCall :: [Symbol] -> String -> [Either TypeCheckError ExplicitExpres
 checkFunctionCall [] fun args = Left $ UndefinedFunction $ "Undefined function: \"" ++ fun ++ "\" [" ++ show (rights args) ++ "]"
 checkFunctionCall ((Func n a r):symbolMap) name args
     | length (rights args) /= length args = Left $ ErrorInsideFunction (name ++ ": " ++ show args ++ show (lefts args))
-    | name == n && all isRight coerce = Right $ ExplicitFunction name (rights coerce) (MakeCoercion [MakeIdCoercion (fst r)] (MakeCardinalityIdCoercion (snd r))) 
+    | name == n && all isRight coerce = Right $ ExplicitFunction name (zip (rights args) (rights coerce)) (MakeCoercion [MakeIdCoercion (fst r)] (MakeCardinalityIdCoercion (snd r))) 
     | otherwise = checkFunctionCall symbolMap name args
     where 
         argCoerce = map returnCoercion (rights args)
@@ -227,19 +228,24 @@ isSubType x y
 -- |Checks whether the first cardinality is included into the second one 
 cardinalityIncluded :: Cardinality -> Cardinality -> Either TypeCheckError CardinalityCoercion
 -- |Special Cases
-cardinalityIncluded (Bounds (0, 0)) (Bounds (0, 1)) = Right $ MakeCardinalityCoercion (Bounds (0, 0)) (Bounds (0, 1)) "Nothing"
-cardinalityIncluded (Bounds (0, 0)) (OneBound 0) = Right $ MakeCardinalityCoercion (Bounds (0, 0)) (OneBound 0) "[]"
-cardinalityIncluded (Bounds (0, 1)) (OneBound 0) = Right $ MakeCardinalityCoercion (Bounds (0, 1)) (OneBound 0) "[Just]"
-cardinalityIncluded (Bounds (1, 1)) (Bounds (0, 1)) = Right $ MakeCardinalityCoercion (Bounds (0, 1)) (Bounds (0, 1)) "Just"
-cardinalityIncluded (Bounds (1, 1)) (OneBound 1) = Right $ MakeCardinalityCoercion (Bounds (0, 1)) (OneBound 1) "[]"
+-- |Transform nothing into a maybe
+cardinalityIncluded (Bounds (0, 0)) (Bounds (0, 1)) = Right $ MakeNothing2MaybeCoercion (Bounds (0, 0)) (Bounds (0, 1))
+-- |Transform nothing into a list
+cardinalityIncluded (Bounds (0, 0)) (OneBound 0) = Right $ MakeNothing2ListCoercion (Bounds (0, 0)) (OneBound 0)
+-- |Transform maybe into list
+cardinalityIncluded (Bounds (0, 1)) (OneBound 0) = Right $ MakeMaybe2ListCoercion (Bounds (0, 1)) (OneBound 0)
+-- |Transform object into maybe
+cardinalityIncluded (Bounds (1, 1)) (Bounds (0, 1)) = Right $ MakeObject2MaybeCoercion (Bounds (0, 1)) (Bounds (0, 1))
+-- |Transform object into list
+cardinalityIncluded (Bounds (1, 1)) (OneBound 1) = Right $ MakeObject2ListCoercion (Bounds (0, 1)) (OneBound 1)
 -- |General
 cardinalityIncluded (OneBound x) (OneBound y)
-    | x >= y = Right $ MakeCardinalityCoercion (OneBound x) (OneBound y) "id"
+    | x >= y = Right $ MakeListCardinalityCoercion (OneBound x) (OneBound y)
     | otherwise = Left $ CardinalityMismatch (OneBound x) (OneBound y)
 cardinalityIncluded (Bounds (x1, y1)) (OneBound y)
-    | x1 >= y = Right $ MakeCardinalityCoercion (Bounds (x1, y1)) (OneBound y) "id"
+    | x1 >= y = Right $ MakeListCardinalityCoercion (Bounds (x1, y1)) (OneBound y)
     | otherwise = Left $ CardinalityMismatch (Bounds (x1, y1)) (OneBound y)
 cardinalityIncluded (OneBound x) (Bounds (x2, y2)) = Left $ CardinalityMismatch (OneBound x) (Bounds (x2, y2))
 cardinalityIncluded (Bounds (x1, x2)) (Bounds (y1, y2))
-    | x1 >= y1 && x2 <= y2 = Right $ MakeCardinalityCoercion (Bounds (x1, x2)) (Bounds (y1, y2)) "id"
+    | x1 >= y1 && x2 <= y2 = Right $ MakeListCardinalityCoercion (Bounds (x1, x2)) (Bounds (y1, y2))
     | otherwise = Left $ CardinalityMismatch (Bounds (x1, x2)) (Bounds (y1, y2))
