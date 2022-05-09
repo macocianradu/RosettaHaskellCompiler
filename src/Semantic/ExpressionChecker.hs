@@ -112,8 +112,12 @@ checkExpression symbolMap (IfSimple cond ex) =
                     Left err -> Left err
                     Right thenExp -> 
                         Right $ ExplicitIfSimple (condType, condCoerce) 
-                        (thenExp, MakeCoercion [MakeIdCoercion $ coercionType $ typeCoercion $ returnCoercion thenExp]
-                         (MakeCardinalityIdCoercion $ toCardinality $ cardinalityCoercion $ returnCoercion thenExp)) (returnCoercion thenExp)
+                        (thenExp, thenCoercion) 
+                        (MakeCoercion [MakeIdCoercion $ coercionType $ typeCoercion $ returnCoercion thenExp]
+                            (MakeCardinalityIdCoercion $ smallestBound (Bounds (0, 0)) (toCardinality $ cardinalityCoercion $ returnCoercion thenExp)))
+                        where 
+                            thenCoercion = MakeCoercion [MakeIdCoercion $ coercionType $ typeCoercion $ returnCoercion thenExp] 
+                                (MakeCardinalityIdCoercion $ toCardinality $ cardinalityCoercion $ returnCoercion thenExp)
 
 -- |Checks if the condition of the if statement is of type boolean, and then checks that both the then and else statements have the same type
 checkExpression symbolMap (IfElse cond ex1 ex2) =
@@ -217,13 +221,13 @@ findVarType x (_:symbols) = findVarType x symbols
 isSubType :: Type -> Type -> Either TypeCheckError [TypeCoercion]
 isSubType (BasicType "Integer") (BasicType "Double") = Right [MakeTypeCoercion (BasicType "Integer") (BasicType "Double") "fromInteger"]
 isSubType (BasicType x) y 
-    | x == typeName y = Right [MakeTypeCoercion y y "id"]
+    | x == typeName y = Right [MakeIdCoercion y]
     | otherwise = Left $ TypeMismatch x (typeName y) 
 isSubType x y 
-    | typeName x == typeName y = Right [MakeTypeCoercion x y "id"]
+    | typeName x == typeName y = Right [MakeIdCoercion x]
     | otherwise = case isSubType (superType x) y of
         Left e -> Left e
-        Right transforms -> Right $ MakeTypeCoercion x y "super" : transforms
+        Right transforms -> Right $ MakeSuperCoercion x y : transforms
 
 -- |Checks whether the first cardinality is included into the second one 
 cardinalityIncluded :: Cardinality -> Cardinality -> Either TypeCheckError CardinalityCoercion
@@ -238,6 +242,7 @@ cardinalityIncluded (Bounds (0, 1)) (OneBound 0) = Right $ MakeMaybe2ListCoercio
 cardinalityIncluded (Bounds (1, 1)) (Bounds (0, 1)) = Right $ MakeObject2MaybeCoercion (Bounds (0, 1)) (Bounds (0, 1))
 -- |Transform object into list
 cardinalityIncluded (Bounds (1, 1)) (OneBound 1) = Right $ MakeObject2ListCoercion (Bounds (0, 1)) (OneBound 1)
+cardinalityIncluded (Bounds (1, 1)) (OneBound 0) = Right $ MakeObject2ListCoercion (Bounds (0, 1)) (OneBound 1)
 -- |General
 cardinalityIncluded (OneBound x) (OneBound y)
     | x >= y = Right $ MakeListCardinalityCoercion (OneBound x) (OneBound y)

@@ -51,7 +51,7 @@ data ExplicitExpression = ExplicitEmpty
     | ExplicitFunction {name :: String, args :: [(ExplicitExpression, Coercion)], returnCoercion :: Coercion}
     | ExplicitIfSimple {cond :: (ExplicitExpression, Coercion), block1 :: (ExplicitExpression, Coercion), returnCoercion :: Coercion}
     | ExplicitIfElse {cond :: (ExplicitExpression, Coercion), block1 :: (ExplicitExpression, Coercion), block2 :: (ExplicitExpression, Coercion), returnCoercion :: Coercion}
-    deriving (Show)
+    deriving (Show) 
 
 data TypeCoercion =
     MakeIdCoercion {toType :: Type}

@@ -19,7 +19,8 @@ checkFunction (definedTypes, symbols) (MakeFunction (MakeFunctionSignature name 
                     Left err -> Left [err]
                     Right checkedEx -> case returnCoercion checkedEx `coercionIncluded` createCoercion (attributeType checkedOut, Model.Type.cardinality out) of
                         Left err -> Left [err]
-                        Right _ -> Right $ MakeExplicitFunction (MakeFunctionSignature (toLower (head name) : tail name) desc (rights checkedIn) checkedOut) checkedEx
+                        Right retCoercion -> Right $ MakeExplicitFunction (MakeFunctionSignature (toLower (head name) : tail name) desc (rights checkedIn) checkedOut) checkedEx
+                        --Right _ -> error $ show (returnCoercion checkedEx) ++ " // " ++ show (createCoercion (attributeType checkedOut, Model.Type.cardinality out))
         else
             Left $ lefts checkedIn
     where checkedIn = checkAttributes definedTypes inp
