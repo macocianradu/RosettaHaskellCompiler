@@ -23,7 +23,7 @@ printFunctionBody (MakeExplicitFunction (MakeFunctionSignature name _ inp out) e
 printExpression :: ExplicitExpression -> Coercion -> Doc a
 printExpression ExplicitEmpty _ = "[]" 
 printExpression (ExplicitVariable name coer) out = case coer `coercionIncluded` out of 
-    Left err -> error $ show coer ++ " /// " ++ show out--show err
+    Left err -> error $ show err
     Right c -> printCoercion c $ pretty name
 printExpression (Value s coer) out = case coer `coercionIncluded` out of
     Left err -> error $ show err 

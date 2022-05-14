@@ -96,7 +96,7 @@ checkExpression symbolMap (PathExpression ex1 (Variable b)) =
     case checkExpression symbolMap ex1 of
         Left err -> Left err
         Right exp1 -> case findAttributeType b (typeAttributes type1) of
-            Left err -> Left $ UndefinedVariable $ show type1--ex1 ++ " -> " ++ b
+            Left err -> Left $ UndefinedVariable $ show ex1 ++ " -> " ++ b
             Right exp2 -> Right $ ExplicitPath exp1 exp2 (returnCoercion exp2)
             where
                 type1 = coercionType $ typeCoercion $ returnCoercion exp1
