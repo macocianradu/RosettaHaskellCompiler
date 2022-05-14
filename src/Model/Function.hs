@@ -15,13 +15,13 @@ data FunctionSignature =
 data Function = 
     MakeFunction {
         signature :: FunctionSignature,
-        assignment :: Expression
+        assignment :: [(Expression, Expression)]
     }
     deriving (Show)
 
 data ExplicitFunction = 
     MakeExplicitFunction {
         sign :: FunctionSignature,
-        explicitAssignment :: ExplicitExpression 
+        explicitAssignment :: [(ExplicitExpression, ExplicitExpression)] 
     }
     deriving Show

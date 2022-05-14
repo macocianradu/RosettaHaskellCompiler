@@ -1,0 +1,23 @@
+namespace test.multiple : <"Something">
+version "${version.ok}"
+
+
+type ExchangeRate:
+  from int (1..1)
+  to int (1..1)
+  
+type Obs:
+  constant number (0..1)
+  exchangeRate ExchangeRate (0..1)
+  condition: one-of
+
+func ExchangeRateFunc:
+  inputs:
+    from int (1..1)
+    to   int (1..1)
+  output:
+    observable Obs (1..1)
+  assign-output observable -> exchangeRate -> from:
+    from
+  assign-output observable -> exchangeRate -> to:
+    to

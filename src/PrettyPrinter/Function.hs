@@ -17,17 +17,20 @@ printFunction f = show $ vcat [printFunctionSignature (sign f), printFunctionBod
 
 -- |Converts the body of a Function into a haskell valid Doc
 printFunctionBody :: ExplicitFunction -> Doc a
-printFunctionBody (MakeExplicitFunction (MakeFunctionSignature name _ inp out) ex) = pretty name <+> printVariableNames inp <+> "=" <+> printExpression ex (createCoercion (attributeType out, Model.Type.cardinality out))
+printFunctionBody (MakeExplicitFunction (MakeFunctionSignature name _ inp out) ex) = pretty name <+> printVariableNames inp <+> "= where" 
+    <+> vcat [printExpression (fst exp) (returnCoercion (fst exp)) <+> " = " 
+        <+> printExpression (snd exp) (returnCoercion (fst exp)) |exp <- ex]
 printExpression :: ExplicitExpression -> Coercion -> Doc a
 printExpression ExplicitEmpty _ = "[]" 
 printExpression (ExplicitVariable name coer) out = case coer `coercionIncluded` out of 
-    Left err -> error $ show err
+    Left err -> error $ show coer ++ " /// " ++ show out--show err
     Right c -> printCoercion c $ pretty name
 printExpression (Value s coer) out = case coer `coercionIncluded` out of
     Left err -> error $ show err 
     Right c -> printCoercion c $ pretty s
 printExpression (ExplicitParens ex) out = "(" <> printExpression ex out <> ")"
 printExpression (ExplicitList ex) out = list [printExpression x out | x <- ex]
+printExpression (ExplicitPath ex1 ex2 returnCoerce) out = printCoercion (returnCoercion ex1) (printExpression ex1 (returnCoercion ex1)) <+> "->" <+> printCoercion (returnCoercion ex2) (printExpression ex2 out)
 printExpression (ExplicitFunction "exists" args returnCoerce) out = printCoercion returnCoerce "isJust" <+> printCoercion (snd $ head args) (printExpression (fst $ head args) out)
 printExpression (ExplicitFunction "is absent" args returnCoerce) out = printCoercion returnCoerce "isNothing" <+> printCoercion (snd $ head args) (printExpression (fst $ head args) out)
 printExpression (ExplicitFunction "single exists" args returnCoerce) out = printCoercion returnCoerce "length" <+> printCoercion (snd $ head args) (printExpression (fst $ head args) out) <+> "==" <+> "1"

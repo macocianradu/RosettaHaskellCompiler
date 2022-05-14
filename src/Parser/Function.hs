@@ -20,15 +20,18 @@ functionParser =
         fDescription <- optional descriptionParser
         fInput <- inputAttributesParser
         fOutput <- outputAttributeParser
-        MakeFunction (MakeFunctionSignature fName fDescription fInput fOutput) <$> assignmentParser
+        MakeFunction (MakeFunctionSignature fName fDescription fInput fOutput) <$> many assignmentParser
 
+-- parseTest assignmentParser (Text.pack "assign-output observable -> exchangeRate -> from: from")
 -- |Parses the output assignment statement from a function in Rosetta into an Expression
-assignmentParser :: Parser Expression
+assignmentParser :: Parser (Expression, Expression)
 assignmentParser =
     do
         _ <- lexeme $ string "assign-output"
+        out <- expressionParser
         _ <- lexeme $ char ':'
-        expressionParser
+        assignment <- expressionParser
+        return (out, assignment)
 
 -- |Parses the input attributes from a function statement in Rosetta into a list of TypeAttributes
 inputAttributesParser :: Parser [TypeAttribute]

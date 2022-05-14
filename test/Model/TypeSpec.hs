@@ -51,16 +51,16 @@ spec = do
 
 cards1 :: [Cardinality]
 cards1 = 
-    [Bounds (0, 20), Bounds (10, 15), Bounds (25, 50), Bounds (15, 16), NoBounds,      OneBound 25,    OneBound 2, OneBound 1, NoBounds,   NoBounds]
+    [Bounds (0, 20), Bounds (10, 15), Bounds (25, 50), Bounds (15, 16), OneBound 0,      OneBound 25,    OneBound 2, OneBound 1, OneBound 0,   OneBound 0]
 
 cards2 :: [Cardinality]
 cards2 = 
-    [Bounds (2, 4),  Bounds (4, 45),  OneBound 6,      NoBounds,        Bounds (2, 5), Bounds (2, 30), OneBound 5, NoBounds,   OneBound 5, NoBounds]
+    [Bounds (2, 4),  Bounds (4, 45),  OneBound 6,      OneBound 0,        Bounds (2, 5), Bounds (2, 30), OneBound 5, OneBound 0,   OneBound 5, OneBound 0]
 
 cardsSum :: [Cardinality]
 cardsSum = 
-    [Bounds (2, 24), Bounds (14, 60), OneBound 31,     OneBound 15,     OneBound 2,    OneBound 27,    OneBound 7, OneBound 1, OneBound 5, NoBounds]
+    [Bounds (2, 24), Bounds (14, 60), OneBound 31,     OneBound 15,     OneBound 2,    OneBound 27,    OneBound 7, OneBound 1, OneBound 5, OneBound 0]
 
 smallestCards :: [Cardinality]
 smallestCards =
-    [Bounds (0, 20), Bounds (4, 45),  OneBound 6,      NoBounds,        NoBounds,      OneBound 2,     OneBound 2, NoBounds,   NoBounds,   NoBounds]
+    [Bounds (0, 20), Bounds (4, 45),  OneBound 6,      OneBound 0,        OneBound 0,      OneBound 2,     OneBound 2, OneBound 0,   OneBound 0,   OneBound 0]

@@ -11,6 +11,8 @@ type TestSomeType: <"description">
 
 type TestZeroOneType extends Period:
     testZeroOneType int (1..1)
+    condition important: <"This is an important condition">
+      observationPrimitive < 0
 
 type ObservationPrimitive:
     observationPrimitive int (1..1)

@@ -50,10 +50,9 @@ cardinalityParser = try parseBounded <|> try parseSemiBounded
 conditionParser :: Parser Condition 
 conditionParser = do
     _ <- lexeme $ string "condition"
-    name <- lexeme camelNameParser
-    _ <- lexeme $ char ':'
     description <- optional descriptionParser 
-    MakeCondition name description <$> expressionParser
+    _ <- lexeme $ char ':'
+    MakeCondition description <$> expressionParser
 
 -- |Parses a bounded cardinality statement in Rosetta into a Cardinality
 parseBounded :: Parser Cardinality

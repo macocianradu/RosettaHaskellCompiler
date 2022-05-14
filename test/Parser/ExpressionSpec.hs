@@ -6,6 +6,7 @@ import Test.Hspec
 import Test.Hspec.Megaparsec
 import Text.Megaparsec
 import Model.Function
+import Model.Type
 import Parser.Expression
   
 spec :: Spec
@@ -70,10 +71,10 @@ exps = [
     Function "Function" [Int "3", InfixExp "+" (Int "3") (Int "2"), Variable "e"],
     -- 10
     IfElse (Function "Function" [InfixExp "+" (Int "2") (Int "3"), Variable "e"]) 
-         (InfixExp "-" (InfixExp "+" (Variable "a") (Variable "b")) (InfixExp "*" (Variable "c") (InfixExp "^" (Variable "d") (Variable "e->x"))))
+         (InfixExp "-" (InfixExp "+" (Variable "a") (Variable "b")) (InfixExp "*" (Variable "c") (InfixExp "^" (Variable "d") (PathExpression (Variable "e") (Variable "x")))))
          (PrefixExp "not" (PostfixExp "exists" (Variable "a"))),
     -- 11
-    IfSimple (List [Int "1", Function "Function" [Int "3"]]) (InfixExp "-" (InfixExp "-" (Int "1") (Int "2")) (InfixExp "*" (Int "3") (InfixExp "^" (Variable "a->b") (Variable "c")))),
+    IfSimple (List [Int "1", Function "Function" [Int "3"]]) (InfixExp "-" (InfixExp "-" (Int "1") (Int "2")) (InfixExp "*" (Int "3") (InfixExp "^" (PathExpression (Variable "a") (Variable "b")) (Variable "c")))),
     -- 12
     InfixExp "or" (Variable "a") (Variable "b")
   ]

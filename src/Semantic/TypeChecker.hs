@@ -16,6 +16,7 @@ data TypeCheckError =
    | CardinalityMismatch Cardinality Cardinality
    | MultipleDeclarations String
    | TypeNameReserved String
+   | UnsupportedExpressionInPathExpression String
    deriving (Show)
 
 -- |Checks whether a data type is valid
@@ -46,17 +47,63 @@ checkAttributes definedTypes ((MakeTypeAttribute name typ crd desc):as) =
         Left err -> Left err : checkAttributes definedTypes as
         Right checked -> Right (MakeTypeAttribute name checked crd desc) : checkAttributes definedTypes as 
 
+populateAttributeType :: [Type] -> [Type] -> TypeAttribute -> Either TypeCheckError TypeAttribute
+populateAttributeType _ _ (MakeTypeAttribute n (MakeType "int" _ _ _ _) c d ) = Right $ MakeTypeAttribute n (BasicType "Integer") c d 
+populateAttributeType _ _  (MakeTypeAttribute n (MakeType "string" _ _ _ _) c d ) = Right $ MakeTypeAttribute n (BasicType "String") c d 
+populateAttributeType _ _  (MakeTypeAttribute n (MakeType "number" _ _ _ _) c d ) = Right $ MakeTypeAttribute n (BasicType "Double") c d 
+populateAttributeType _ _  (MakeTypeAttribute n (MakeType "boolean" _ _ _ _) c d ) = Right $ MakeTypeAttribute n (BasicType "Bool") c d 
+populateAttributeType _ _  (MakeTypeAttribute n (MakeType "time" _ _ _ _) c d ) = Right $ MakeTypeAttribute n (BasicType "Time") c d 
+populateAttributeType _ _ (MakeTypeAttribute n (BasicType t) c d) = Right $ MakeTypeAttribute n (BasicType t) c d 
+populateAttributeType _ [] t = Left $ UndefinedType $ typeName $ attributeType t
+populateAttributeType t (definedT : ts) typ
+    | definedT == attributeType typ = 
+        let populatedAttr = map (populateAttributeType t t) (typeAttributes definedT) 
+        in
+        if null $ lefts populatedAttr 
+        then Right $ MakeTypeAttribute 
+            (attributeName typ) 
+            (MakeType (typeName definedT) (superType definedT) (typeDescription definedT) (rights populatedAttr) (conditions definedT)) 
+            (cardinality typ)
+            (attributeDescription typ)
+        else Left $ head $ lefts populatedAttr
+    | otherwise = populateAttributeType t ts typ
+
 -- |Checks whether a type is predefined or in the symbol table
 checkAttributeType :: [Type] -> Type -> Either TypeCheckError Type
+checkAttributeType [] t = Left $ UndefinedType $ typeName t
 checkAttributeType _ (MakeType "int" _ _ _ _) = Right $ BasicType "Integer"
 checkAttributeType _ (MakeType "string" _ _ _ _) = Right $ BasicType "String"
 checkAttributeType _ (MakeType "number" _ _ _ _) = Right $ BasicType "Double"
 checkAttributeType _ (MakeType "boolean" _ _ _ _) = Right $ BasicType "Bool"
 checkAttributeType _ (MakeType "time" _ _ _ _) = Right $ BasicType "Time"
-checkAttributeType definedTypes name
-    | name `elem` definedTypes = Right name
-    | otherwise = Left $ UndefinedType (typeName name)
-    
+checkAttributeType (defined : ts) t
+    | defined == t = Right defined
+    | otherwise = checkAttributeType ts t
+
+populateTypes :: [Type] -> Either [TypeCheckError] [Type]
+populateTypes t = populateTypes1 t t 
+
+populateTypes1 :: [Type] -> [Type] -> Either [TypeCheckError] [Type]
+populateTypes1 _ [] = Right []
+populateTypes1 emptyTypes (BasicType t : ts) = 
+    case populateTypes1 emptyTypes ts of
+        Left error -> Left error
+        Right definedTypes -> Right $ BasicType t : definedTypes
+populateTypes1 emptyTypes (t : ts) = 
+    case populateTypes1 emptyTypes ts of
+        Left error -> Left error
+        Right definedTypes -> 
+            let populated = map (populateAttributeType emptyTypes emptyTypes) (typeAttributes t) in
+                if null $ lefts populated
+                    then Right $ MakeType
+                        (typeName t)
+                        (superType t)
+                        (typeDescription t)
+                        (rights populated)
+                        (conditions t) : definedTypes
+                    else
+                        Left $ lefts populated
+
 -- |Add a list of defined types to the symbol table
 addDefinedTypes :: [Type] -> [Type] -> Either [TypeCheckError] [Type]
 addDefinedTypes l [] = Right l

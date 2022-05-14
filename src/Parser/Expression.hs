@@ -12,7 +12,7 @@ import Text.Megaparsec.Char
 
 -- |Parses a complete Rosetta expression into an Expression type
 expressionParser :: Parser Expression
-expressionParser = 
+expressionParser =
     choice [ ifParser,
     try functionCallParser,
     eqParser]
@@ -46,7 +46,7 @@ ifParser =
         case els of
             Left _ -> return (IfSimple condition expr)
             Right _ -> expressionParser >>= \expr2 -> return (IfElse condition expr expr2)
-    
+
 -- |Parses an expression between parentheses in Rosetta into an Expression
 parens :: Parser a -> Parser a
 parens = between (char '(') (char ')')
@@ -69,16 +69,7 @@ listParser =
 variableParser :: Parser Expression
 variableParser =
     do
-        var <- camelNameParser
-        inner <- many innerVariableParser
-        return $ Variable (var ++ concatMap ("->" ++) inner)
-
--- |Parses an inner variable (a -> b) in Rosetta into an Expression
-innerVariableParser :: Parser String
-innerVariableParser =
-    do
-        _ <- lexeme $ string "->"
-        camelNameParser
+        Variable <$> camelNameParser
 
 -- |Parses an integer in Rosetta into an Expression
 integerParser :: Parser Expression
@@ -86,7 +77,7 @@ integerParser =
     do
         nr <- lexeme $ some digitChar
         return $ Int nr
-    
+
 -- |Parses a real number in Rosetta into an Expression    
 decimalParser :: Parser Expression
 decimalParser =
@@ -95,7 +86,7 @@ decimalParser =
         _ <- char '.'
         real <- lexeme $ many digitChar
         return $ Real $ nr ++ "." ++ real
-      
+
 -- |Parses a boolean in Rosetta into an Expression  
 booleanParser :: Parser Expression
 booleanParser =
@@ -105,7 +96,7 @@ booleanParser =
 
 -- |Parses the empty statement in Rosetta into an Expression
 emptyParser :: Parser Expression
-emptyParser = 
+emptyParser =
     do
         _ <- lexeme $ string "empty"
         return Empty
@@ -114,7 +105,7 @@ emptyParser =
 terminalParser :: Parser Expression
 terminalParser =
     do
-        choice 
+        choice
             [ prefixParser,
              parens expressionParser >>= \e -> return (Parens e),
              listParser,
@@ -131,11 +122,11 @@ terminalParser =
 
 -- |Parses an prefix function statement in Rosetta into an Expression
 prefixParser :: Parser Expression
-prefixParser = 
+prefixParser =
     do
         op <- lexeme $ choice $ fmap (try . string . Text.pack) prefixOperators
         PrefixExp (Text.unpack op) <$> expressionParser
-        
+
 -- |List of prefix operators
 prefixOperators :: [String]
 prefixOperators = ["-", "not"]
@@ -166,43 +157,54 @@ sumParser =
 
 -- |Parses a multiplication or division statement in Rosetta into an Expression
 factorParser :: Parser Expression
-factorParser = 
-    do 
+factorParser =
+    do
         p <- powerParser
         op <- lexeme $ observing (char '*' <|> char '/')
         case op of
             Left _ -> return p
             Right o -> factorParser >>= \ex -> return $ reverseExpression $ InfixExp [o] p ex
 
--- |Parses a boolean statement in Rosetta into an Expression
-boolOpParser :: Parser Expression
-boolOpParser = 
-    do 
-        p <- postfixParser
-        op <- lexeme $ observing (string "or" <|> string "and")
-        case op of
-            Left _ -> return p
-            Right o -> boolOpParser >>= \ex -> return $ InfixExp (Text.unpack o) p ex
-
 -- |Parses a power statement in Rosetta into an Expression
 powerParser :: Parser Expression
-powerParser = 
+powerParser =
     do
         p <- boolOpParser
         op <- lexeme $ observing $ char '^'
         case op of
             Left _ -> return p
             Right _ -> powerParser >>= \ex -> return $ InfixExp "^" p ex
-     
+
+-- |Parses a boolean statement in Rosetta into an Expression
+boolOpParser :: Parser Expression
+boolOpParser =
+    do
+        p <- postfixParser
+        op <- lexeme $ observing (string "or" <|> string "and")
+        case op of
+            Left _ -> return p
+            Right o -> boolOpParser >>= \ex -> return $ InfixExp (Text.unpack o) p ex
+
 -- |Parses a postfix function in Rosetta into an Expression       
 postfixParser :: Parser Expression
-postfixParser = 
+postfixParser =
     do
-        t <- terminalParser
+        t <- pathExpressionParser
         op <- lexeme $ observing $ choice $ fmap (try . string . Text.pack) postfixFunctions
         case op of
             Left _ -> return t
             Right o -> return $ PostfixExp (Text.unpack o) t
+
+            
+-- |Parses a path expression (a -> b) in Rosetta into an Expression
+pathExpressionParser :: Parser Expression
+pathExpressionParser =
+    do
+        var <- terminalParser
+        op <- lexeme $ observing $ string "->"
+        case op of
+            Left _ -> return var
+            Right _ -> pathExpressionParser >>= \ex -> return $ reverseExpression $ PathExpression var ex
 
 -- |The list of existing postfix Rosetta functions
 postfixFunctions :: [String]
@@ -217,6 +219,7 @@ reverseExpression :: Expression -> Expression
 reverseExpression (InfixExp op t1 (InfixExp op2 t2 e))
     | precedence op == precedence op2 = InfixExp op2 (reverseExpression (InfixExp op t1 t2)) e
     | otherwise = InfixExp op t1 (InfixExp op2 t2 e)
+reverseExpression (PathExpression e1 (PathExpression e2 e3)) = PathExpression (reverseExpression (PathExpression e1 e2)) e3 
 reverseExpression e = e
 
 

@@ -40,4 +40,4 @@ printCardinality (MakeTypeAttribute _ typ (Bounds (x, y)) _)
 printCardinality (MakeTypeAttribute _ typ (OneBound _) _) = "[" <> pretty (typeName typ) <> "]"
 
 printCondition :: Condition -> Doc a
-printCondition (MakeCondition name desc e) = printDescription desc ("--" <+> pretty name <+> pretty (show e))
+printCondition (MakeCondition desc e) = printDescription desc ("--" <+> pretty (show e))

@@ -22,13 +22,13 @@ instance Eq Type where
     (==) _ _ = False
 
 data Condition = MakeCondition {
-    conditionName :: String,
     conditionDescription :: Maybe String,
     expressionExpression :: Expression
 } deriving (Show)
 
 -- |The representation of an expression
 data Expression = Variable String
+    | PathExpression Expression Expression
     | Int String
     | Real String
     | Boolean String
@@ -48,6 +48,7 @@ data ExplicitExpression = ExplicitEmpty
     | Value {name :: String, returnCoercion :: Coercion}
     | ExplicitList [ExplicitExpression]
     | ExplicitParens ExplicitExpression
+    | ExplicitPath {super :: ExplicitExpression, sub :: ExplicitExpression, returnCoercion :: Coercion}
     | ExplicitFunction {name :: String, args :: [(ExplicitExpression, Coercion)], returnCoercion :: Coercion}
     | ExplicitIfSimple {cond :: (ExplicitExpression, Coercion), block1 :: (ExplicitExpression, Coercion), returnCoercion :: Coercion}
     | ExplicitIfElse {cond :: (ExplicitExpression, Coercion), block1 :: (ExplicitExpression, Coercion), block2 :: (ExplicitExpression, Coercion), returnCoercion :: Coercion}
