@@ -37,8 +37,10 @@ assignmentParser =
 inputAttributesParser :: Parser [TypeAttribute]
 inputAttributesParser =
     do
-        _ <- lexeme $ string "inputs:"
-        many $ try attributeParser
+        inp <- observing $ lexeme $ string "inputs:"
+        case inp of
+            Left _ -> return []
+            Right _ -> many $ try attributeParser
 
 -- |Parses the output attribute of a function statement in Rosetta into a TypeAttribute
 outputAttributeParser :: Parser TypeAttribute

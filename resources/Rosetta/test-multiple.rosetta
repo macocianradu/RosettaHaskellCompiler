@@ -63,3 +63,45 @@ type Contract_Get:
   contract Contract (1..1)
 type Contract_Anytime:
   contract Contract (1..1)
+
+func MkZero:
+  output:
+    contract Contract (1..1)
+  assign-output contract -> zero -> unit:
+    1 // create the zero contract dummy value
+
+func MkExpired:
+  output:
+    contract Contract (1..1)
+  assign-output contract -> expired -> unit:
+    1 // create the expired contract dummy value
+
+func MkOne:
+  inputs:
+    currency UnitType (1..1)
+  output:
+    contract Contract (1..1)
+  assign-output contract -> one -> currency:
+    currency
+
+func MkOr:
+  inputs:
+    left  Contract (1..1)
+    right Contract (1..1)
+  output:
+    contract Contract (1..1)
+  assign-output contract -> orContract -> left:
+    left
+  assign-output contract -> orContract -> right:
+    right
+
+func MkBoth:
+  inputs:
+    left  Contract (1..1)
+    right Contract (1..1)
+  output:
+    contract Contract (1..1)
+  assign-output contract -> both -> left:
+    left
+  assign-output contract -> both -> right:
+    right
