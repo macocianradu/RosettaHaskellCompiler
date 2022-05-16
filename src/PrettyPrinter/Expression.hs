@@ -9,7 +9,7 @@ import Semantic.ExpressionChecker(coercionIncluded)
 printExpression :: ExplicitExpression -> Coercion -> Doc a
 printExpression ExplicitEmpty _ = "[]" 
 printExpression (ExplicitVariable name coer) out = case coer `coercionIncluded` out of 
-    Left err -> error $ show err
+    Left err -> error $ show coer ++ "//" ++ show out --err
     Right c -> printCoercion c $ pretty name
 printExpression (Value s coer) out = case coer `coercionIncluded` out of
     Left err -> error $ show err 

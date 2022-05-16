@@ -26,6 +26,7 @@ import Data.Void
 import Utils.Utils
 import Data.Text (Text)
 
+-- :l resources/Generated/testMultiple.hs
 -- :set args resources/Rosetta/test-multiple.rosetta
 
 -- :set args resources/Rosetta/test-all.rosetta
@@ -64,12 +65,9 @@ parseWithImport file =
                     let importedFunctions = concat $ sndlst importedSymbolTable
                     case addNewTypes importedTypes objs of
                         Left errors -> error $ show errors
-                        Right emptyTypes ->
-                            case populateTypes emptyTypes of
-                                Left errors -> error $ show errors
-                                Right definedTypes -> case addNewFunctions (definedTypes, importedFunctions) objs of
-                                    Left errors -> error $ show errors
-                                    Right definedFunctions -> return $ ((definedTypes, definedFunctions), (MakeHeader name desc vers imp, objs)) : concat imports
+                        Right definedTypes -> case addNewFunctions (definedTypes, importedFunctions) objs of
+                            Left errors -> error $ show errors
+                            Right definedFunctions -> return $ ((definedTypes, definedFunctions), (MakeHeader name desc vers imp, objs)) : concat imports
 
 -- |Parse a file into a list of RosettaObjects
 parseFile :: String -> Either (ParseErrorBundle Text Void) (Header, [RosettaObject])

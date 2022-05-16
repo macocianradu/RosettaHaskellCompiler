@@ -85,42 +85,42 @@ addVariables s [] = s
 addVariables s ((MakeTypeAttribute name typ crd _)  : vars) = Var name (toHaskell typ) crd : addVariables s vars
 
 -- |Checks the type of a given expression
-checkExpression :: [Symbol] -> Expression -> Either TypeCheckError ExplicitExpression
+checkExpression :: [Type] -> [Symbol] -> Expression -> Either TypeCheckError ExplicitExpression
 --checkExpression sym _ = error $ show sym
-checkExpression symbolMap (Variable var) = findVarType var symbolMap
-checkExpression _ (Int val) = Right $ Value val $ MakeCoercion [MakeIdCoercion (BasicType "Integer")] (MakeCardinalityIdCoercion (Bounds (1, 1)))
-checkExpression _ (Real val) = Right $ Value val $ MakeCoercion [MakeIdCoercion (BasicType "Double")] (MakeCardinalityIdCoercion (Bounds (1, 1)))
-checkExpression _ (Boolean val) = Right $ Value val $ MakeCoercion [MakeIdCoercion (BasicType "Boolean")] (MakeCardinalityIdCoercion (Bounds (1, 1)))
-checkExpression _ Empty = Right $ Value "empty" $ MakeCoercion [MakeIdCoercion (BasicType "Empty")] (MakeCardinalityIdCoercion (Bounds (0, 0)))
-checkExpression _ (Keyword k) = Right $ ExplicitKeyword k
-checkExpression symbolMap (PathExpression ex1 (Variable b)) =
-    case checkExpression symbolMap ex1 of
+checkExpression defT symbolMap (Variable var) = findVarType var symbolMap
+checkExpression _ _ (Int val) = Right $ Value val $ MakeCoercion [MakeIdCoercion (BasicType "Integer")] (MakeCardinalityIdCoercion (Bounds (1, 1)))
+checkExpression _ _ (Real val) = Right $ Value val $ MakeCoercion [MakeIdCoercion (BasicType "Double")] (MakeCardinalityIdCoercion (Bounds (1, 1)))
+checkExpression _ _ (Boolean val) = Right $ Value val $ MakeCoercion [MakeIdCoercion (BasicType "Boolean")] (MakeCardinalityIdCoercion (Bounds (1, 1)))
+checkExpression _ _ Empty = Right $ Value "empty" $ MakeCoercion [MakeIdCoercion (BasicType "Empty")] (MakeCardinalityIdCoercion (Bounds (0, 0)))
+checkExpression _ _ (Keyword k) = Right $ ExplicitKeyword k
+checkExpression defT symbolMap (PathExpression ex1 (Variable b)) =
+    case checkExpression defT symbolMap ex1 of
         Left err -> Left err
-        Right exp1 -> case findAttributeType b (typeAttributes type1) of
-            Left err -> Left $ UndefinedVariable $ show ex1 ++ " -> " ++ b
+        Right exp1 -> case findAttributeType b (getTypeAttributes defT type1) of
+            Left err -> Left $ UndefinedVariable $ show type1 ++ " -> " ++ b
             Right exp2 -> Right $ ExplicitPath exp1 exp2 (returnCoercion exp2)
             where
                 type1 = coercionType $ typeCoercion $ returnCoercion exp1
 -- |Getting here means that an expression is used inside a path expression and this is not supported
-checkExpression _ (PathExpression _ ex) = Left $ UnsupportedExpressionInPathExpression $ show ex
+checkExpression _ _ (PathExpression _ ex) = Left $ UnsupportedExpressionInPathExpression $ show ex
 --checkExpression symbolMap (PathExpression ex1 (PathExpression ))
-checkExpression symbolMap (Parens ex) =
-    case checkExpression symbolMap ex of
+checkExpression defT symbolMap (Parens ex) =
+    case checkExpression defT symbolMap ex of
         Left err -> Left err
         Right exp -> Right $ ExplicitParens exp
-checkExpression symbolMap (List lst) = checkList symbolMap lst
-checkExpression symbolMap (PrefixExp name ex) = checkFunctionCall symbolMap name [checkExpression symbolMap ex]
-checkExpression symbolMap (Function name exps) = checkFunctionCall symbolMap name (map (checkExpression symbolMap) exps)
-checkExpression symbolMap (PostfixExp name ex) = checkFunctionCall symbolMap name [checkExpression symbolMap ex]
-checkExpression symbolMap (InfixExp name ex1 ex2) = checkFunctionCall symbolMap name (checkExpression symbolMap ex1: [checkExpression symbolMap ex2])
+checkExpression defT symbolMap (List lst) = checkList defT symbolMap lst
+checkExpression defT symbolMap (PrefixExp name ex) = checkFunctionCall symbolMap name [checkExpression defT symbolMap ex]
+checkExpression defT symbolMap (Function name exps) = checkFunctionCall symbolMap name (map (checkExpression defT symbolMap) exps)
+checkExpression defT symbolMap (PostfixExp name ex) = checkFunctionCall symbolMap name [checkExpression defT symbolMap ex]
+checkExpression defT symbolMap (InfixExp name ex1 ex2) = checkFunctionCall symbolMap name (checkExpression defT symbolMap ex1: [checkExpression defT symbolMap ex2])
 -- |Checks if the condition of an if expression is of type boolean, and then checks the expression of the then statement
-checkExpression symbolMap (IfSimple cond ex) =
-    case checkExpression symbolMap cond of
+checkExpression defT symbolMap (IfSimple cond ex) =
+    case checkExpression defT symbolMap cond of
         Left err -> Left $ IfConditionNotBoolean $ show err
         Right condType -> case returnCoercion condType `coercionIncluded` MakeCoercion [MakeIdCoercion (BasicType "Boolean")] (MakeCardinalityIdCoercion (Bounds (1, 1))) of
             Left err -> Left $ IfConditionNotBoolean $ show cond ++ " :: " ++ show (coercionType $ typeCoercion $ returnCoercion condType)
             Right condCoerce ->
-                case checkExpression symbolMap ex of
+                case checkExpression defT symbolMap ex of
                     Left err -> Left err
                     Right thenExp ->
                         Right $ ExplicitIfSimple (condType, condCoerce)
@@ -132,15 +132,15 @@ checkExpression symbolMap (IfSimple cond ex) =
                                 (MakeCardinalityIdCoercion $ toCardinality $ cardinalityCoercion $ returnCoercion thenExp)
 
 -- |Checks if the condition of the if statement is of type boolean, and then checks that both the then and else statements have the same type
-checkExpression symbolMap (IfElse cond ex1 ex2) =
-    case checkExpression symbolMap cond of
+checkExpression defT symbolMap (IfElse cond ex1 ex2) =
+    case checkExpression defT symbolMap cond of
         Left err -> Left $ IfConditionNotBoolean $ show err
         Right condType -> case returnCoercion condType `coercionIncluded` MakeCoercion [MakeIdCoercion (BasicType "Boolean")] (MakeCardinalityIdCoercion (Bounds (1, 1))) of
             Left err -> Left $ IfConditionNotBoolean $ show cond ++ " :: " ++ show (coercionType $ typeCoercion $ returnCoercion condType)
             Right condCoerce ->
-                case checkExpression symbolMap ex1 of
+                case checkExpression defT symbolMap ex1 of
                     Left err -> Left $ ErrorInsideFunction $ show err
-                    Right thenExp -> case checkExpression symbolMap ex2 of
+                    Right thenExp -> case checkExpression defT symbolMap ex2 of
                         Left err -> Left $ ErrorInsideFunction $ show err
                         Right elseExp ->
                             Right $ ExplicitIfElse (condType, condCoerce)
@@ -152,27 +152,27 @@ checkExpression symbolMap (IfElse cond ex1 ex2) =
 
 -- |TODO Handle nested lists and lists with parens
 -- |Checks that all the expressions in a list have compatible types
-checkList :: [Symbol] -> [Expression] -> Either TypeCheckError ExplicitExpression
-checkList _ [] = Right $ ExplicitList [ExplicitEmpty]
-checkList symbs (ex : exps) =
-    case checkExpression symbs ex of
+checkList :: [Type] -> [Symbol] -> [Expression] -> Either TypeCheckError ExplicitExpression
+checkList _ _ [] = Right $ ExplicitList [ExplicitEmpty]
+checkList defT symbs (ex : exps) =
+    case checkExpression defT symbs ex of
         Left err -> Left err
         Right x ->
-            case checkList1 symbs exps (coercionType $ typeCoercion $ returnCoercion x, toCardinality $ cardinalityCoercion $ returnCoercion x) of
+            case checkList1 defT symbs exps (coercionType $ typeCoercion $ returnCoercion x, toCardinality $ cardinalityCoercion $ returnCoercion x) of
                 Left err -> Left err
                 Right exp -> Right $ ExplicitList exp
 
 -- |Auxiliary function for the check list function
-checkList1 :: [Symbol] -> [Expression] -> (Type, Cardinality) -> Either TypeCheckError [ExplicitExpression]
-checkList1 _ [] typ = Right [ExplicitEmpty]
-checkList1 symbs (ex : exps) typ =
-    case checkExpression symbs ex of
+checkList1 :: [Type] -> [Symbol] -> [Expression] -> (Type, Cardinality) -> Either TypeCheckError [ExplicitExpression]
+checkList1 _ _ [] typ = Right [ExplicitEmpty]
+checkList1 defT symbs (ex : exps) typ =
+    case checkExpression defT symbs ex of
         Left err -> Left err
         Right exCo ->
             case fst typ `isSubType` exTyp of
                 Left err -> Left err
                 Right _ ->
-                    case checkList1 symbs exps (exTyp, smallestBound exCard (snd typ)) of
+                    case checkList1 defT symbs exps (exTyp, smallestBound exCard (snd typ)) of
                         Left err -> Left err
                         Right explicitEx -> Right [ExplicitList explicitEx]
                 where
@@ -246,6 +246,18 @@ isSubType x y
     | otherwise = case isSubType (superType x) y of
         Left e -> Left e
         Right transforms -> Right $ MakeSuperCoercion x y : transforms
+
+-- |Finds the type attributes from a type in the symbol table
+getTypeAttributes :: [Type] -> Type -> [TypeAttribute]
+getTypeAttributes [] t = []
+getTypeAttributes (defT : ts) t 
+    | typeName defT == typeName t = 
+        [MakeTypeAttribute {attributeName = attributeName attr, 
+            attributeType = toHaskell (attributeType attr), 
+            Model.Type.cardinality = Model.Type.cardinality attr, 
+            attributeDescription = attributeDescription attr} 
+            | attr <- typeAttributes defT]
+    | otherwise = getTypeAttributes ts t
 
 -- |Checks whether the first cardinality is included into the second one 
 cardinalityIncluded :: Cardinality -> Cardinality -> Either TypeCheckError CardinalityCoercion

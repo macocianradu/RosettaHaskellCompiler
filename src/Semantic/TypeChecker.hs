@@ -80,30 +80,6 @@ checkAttributeType (defined : ts) t
     | defined == t = Right defined
     | otherwise = checkAttributeType ts t
 
-populateTypes :: [Type] -> Either [TypeCheckError] [Type]
-populateTypes t = populateTypes1 t t 
-
-populateTypes1 :: [Type] -> [Type] -> Either [TypeCheckError] [Type]
-populateTypes1 _ [] = Right []
-populateTypes1 emptyTypes (BasicType t : ts) = 
-    case populateTypes1 emptyTypes ts of
-        Left error -> Left error
-        Right definedTypes -> Right $ BasicType t : definedTypes
-populateTypes1 emptyTypes (t : ts) = 
-    case populateTypes1 emptyTypes ts of
-        Left error -> Left error
-        Right definedTypes -> 
-            let populated = map (populateAttributeType emptyTypes emptyTypes) (typeAttributes t) in
-                if null $ lefts populated
-                    then Right $ MakeType
-                        (typeName t)
-                        (superType t)
-                        (typeDescription t)
-                        (rights populated)
-                        (conditions t) : definedTypes
-                    else
-                        Left $ lefts populated
-
 -- |Add a list of defined types to the symbol table
 addDefinedTypes :: [Type] -> [Type] -> Either [TypeCheckError] [Type]
 addDefinedTypes l [] = Right l

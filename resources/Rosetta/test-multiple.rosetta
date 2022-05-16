@@ -21,3 +21,45 @@ func ExchangeRateFunc:
     from
   assign-output observable -> exchangeRate -> to:
     to
+
+type Contract:
+  zero       Contract_Zero       (0..1)
+  expired    Contract_Expired    (0..1)
+  one        Contract_One        (0..1)
+  orContract Contract_Or         (0..1)
+  both       Contract_Both       (0..1)
+  give       Contract_Give       (0..1)
+  thereafter Contract_Thereafter (0..1)
+  truncate   Contract_Truncate   (0..1)
+  scale      Contract_Scale      (0..1)
+  get        Contract_Get        (0..1)
+  anytime    Contract_Anytime    (0..1)
+  condition: one-of
+
+type Contract_Zero:
+   unit int (1..1)
+type Contract_Expired:
+   unit int (1..1)
+type Contract_One:
+  currency int (1..1)
+type Contract_Or:
+  left Contract (1..1)
+  right Contract (1..1)
+type Contract_Both:
+  left Contract (1..1)
+  right Contract (1..1)
+type Contract_Thereafter:
+  earlier Contract (1..1)
+  later   Contract (1..1)
+type Contract_Give:
+  contract Contract (1..1)
+type Contract_Truncate:
+  expiryDate string     (1..1)
+  contract   Contract (1..1)
+type Contract_Scale:
+  observable Obs (1..1)
+  contract Contract (1..1)
+type Contract_Get:
+  contract Contract (1..1)
+type Contract_Anytime:
+  contract Contract (1..1)
