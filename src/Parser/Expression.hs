@@ -106,7 +106,9 @@ terminalParser :: Parser Expression
 terminalParser =
     do
         choice
-            [ prefixParser,
+            [  
+             try keywordParser,
+             prefixParser,
              parens expressionParser >>= \e -> return (Parens e),
              listParser,
              try booleanParser,
@@ -119,6 +121,14 @@ terminalParser =
 --------------------------------------------
 -- Expressions -----------------------------
 --------------------------------------------
+keywords :: [String]
+keywords = ["one-of"]
+
+keywordParser :: Parser Expression
+keywordParser = 
+    do 
+        word <- lexeme $ choice $ fmap (try . string . Text.pack) keywords
+        return $ Keyword $ Text.unpack word
 
 -- |Parses an prefix function statement in Rosetta into an Expression
 prefixParser :: Parser Expression

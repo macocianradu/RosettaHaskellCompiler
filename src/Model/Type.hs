@@ -26,9 +26,13 @@ data Condition = MakeCondition {
     expressionExpression :: Expression
 } deriving (Show)
 
+instance Eq Condition where
+    (==) (MakeCondition _ ex) (MakeCondition _ ex2) = ex == ex2
+
 -- |The representation of an expression
 data Expression = Variable String
     | PathExpression Expression Expression
+    | Keyword String
     | Int String
     | Real String
     | Boolean String
@@ -47,12 +51,24 @@ data ExplicitExpression = ExplicitEmpty
     | ExplicitVariable {name :: String, returnCoercion :: Coercion}
     | Value {name :: String, returnCoercion :: Coercion}
     | ExplicitList [ExplicitExpression]
+    | ExplicitKeyword String
     | ExplicitParens ExplicitExpression
     | ExplicitPath {super :: ExplicitExpression, sub :: ExplicitExpression, returnCoercion :: Coercion}
     | ExplicitFunction {name :: String, args :: [(ExplicitExpression, Coercion)], returnCoercion :: Coercion}
     | ExplicitIfSimple {cond :: (ExplicitExpression, Coercion), block1 :: (ExplicitExpression, Coercion), returnCoercion :: Coercion}
     | ExplicitIfElse {cond :: (ExplicitExpression, Coercion), block1 :: (ExplicitExpression, Coercion), block2 :: (ExplicitExpression, Coercion), returnCoercion :: Coercion}
-    deriving (Show) 
+
+instance Show ExplicitExpression where
+    show (ExplicitVariable name coer) = show $ "Variable: " ++ name
+    show (Value name coer) = show $ "Value: " ++ name
+    show (ExplicitList lst) = concatMap show lst
+    show (ExplicitKeyword name) = show $ "Keyword: " ++ name
+    show (ExplicitParens name) = show $ "(" ++ show name ++ ")"
+    show (ExplicitPath super sub coer) = show $ "(->" ++ show super ++ " " ++ show sub ++ ")"
+    show (ExplicitFunction name args coer) = show $ name ++ "(" ++ concatMap show args ++ ")" 
+    show (ExplicitIfSimple cond block coer) = show $ "if" ++ show cond ++ " then " ++ show block
+    show (ExplicitIfElse cond block1 block2 coer) = show $ "if" ++ show cond ++ " then " ++ show block1 ++ " else " ++ show block2
+    show ExplicitEmpty = show "Empty"
 
 data TypeCoercion =
     MakeIdCoercion {toType :: Type}

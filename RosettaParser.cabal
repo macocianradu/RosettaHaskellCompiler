@@ -37,6 +37,7 @@ library
       Parser.Header
       Parser.Type
       PrettyPrinter.Enum
+      PrettyPrinter.Expression
       PrettyPrinter.Function
       PrettyPrinter.General
       PrettyPrinter.Header

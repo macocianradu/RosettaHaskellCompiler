@@ -92,6 +92,7 @@ checkExpression _ (Int val) = Right $ Value val $ MakeCoercion [MakeIdCoercion (
 checkExpression _ (Real val) = Right $ Value val $ MakeCoercion [MakeIdCoercion (BasicType "Double")] (MakeCardinalityIdCoercion (Bounds (1, 1)))
 checkExpression _ (Boolean val) = Right $ Value val $ MakeCoercion [MakeIdCoercion (BasicType "Boolean")] (MakeCardinalityIdCoercion (Bounds (1, 1)))
 checkExpression _ Empty = Right $ Value "empty" $ MakeCoercion [MakeIdCoercion (BasicType "Empty")] (MakeCardinalityIdCoercion (Bounds (0, 0)))
+checkExpression _ (Keyword k) = Right $ ExplicitKeyword k
 checkExpression symbolMap (PathExpression ex1 (Variable b)) =
     case checkExpression symbolMap ex1 of
         Left err -> Left err
@@ -100,13 +101,13 @@ checkExpression symbolMap (PathExpression ex1 (Variable b)) =
             Right exp2 -> Right $ ExplicitPath exp1 exp2 (returnCoercion exp2)
             where
                 type1 = coercionType $ typeCoercion $ returnCoercion exp1
+-- |Getting here means that an expression is used inside a path expression and this is not supported
+checkExpression _ (PathExpression _ ex) = Left $ UnsupportedExpressionInPathExpression $ show ex
 --checkExpression symbolMap (PathExpression ex1 (PathExpression ))
 checkExpression symbolMap (Parens ex) =
     case checkExpression symbolMap ex of
         Left err -> Left err
         Right exp -> Right $ ExplicitParens exp
--- |Getting here means that an expression is used inside a path expression and this is not supported
-checkExpression _ (PathExpression _ ex) = Left $ UnsupportedExpressionInPathExpression $ show ex
 checkExpression symbolMap (List lst) = checkList symbolMap lst
 checkExpression symbolMap (PrefixExp name ex) = checkFunctionCall symbolMap name [checkExpression symbolMap ex]
 checkExpression symbolMap (Function name exps) = checkFunctionCall symbolMap name (map (checkExpression symbolMap) exps)
