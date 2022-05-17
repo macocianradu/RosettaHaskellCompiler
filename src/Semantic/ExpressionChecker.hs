@@ -254,7 +254,7 @@ getTypeAttributes (defT : ts) t
     | typeName defT == typeName t = 
         [MakeTypeAttribute {attributeName = attributeName attr, 
             attributeType = toHaskell (attributeType attr), 
-            Model.Type.cardinality = Model.Type.cardinality attr, 
+            Model.Type.cardinality = if MakeCondition Nothing (Keyword "one-of") `elem` conditions defT then Bounds (1,1) else Model.Type.cardinality attr, 
             attributeDescription = attributeDescription attr} 
             | attr <- typeAttributes defT]
     | otherwise = getTypeAttributes ts t

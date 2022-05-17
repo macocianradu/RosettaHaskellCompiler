@@ -8,7 +8,7 @@ import Model.Function
 import PrettyPrinter.General
 import PrettyPrinter.Type
 import Model.Type
-import Utils.Utils (uncapitalize)
+import Utils.Utils (capitalize, uncapitalize)
 
 {-
 Consider all assignments as trees
@@ -42,7 +42,7 @@ printFunction f = show $ vcat [printFunctionSignature (sign f), printFunctionBod
 printFunctionBody :: ExplicitFunction -> Doc a
 printFunctionBody (MakeExplicitFunction (MakeFunctionSignature name _ inp out) ex) =
     pretty name <+> printVariableNames inp <+> "=" <+> 
-    printAssignmentTree (head $ mergeAssignmentTrees [convertToAssignmentTree (fst exp) (AssignmentLeaf (snd exp)) | exp <- ex]) (returnCoercion (fst $ head ex))
+    printAssignmentTree (head $ mergeAssignmentTrees [convertToAssignmentTree (fst exp) (AssignmentLeaf (snd exp)) | exp <- ex])
     --error $ show $ mergeAssignmentTrees [convertToAssignmentTree (fst exp) (AssignmentLeaf (snd exp)) | exp <- ex]
 
 
@@ -55,15 +55,19 @@ printFunctionSignature (MakeFunctionSignature name description inputs output) =
 prettyPrintType :: [Doc x] -> Doc x
 prettyPrintType = align . sep . Prelude.zipWith (<+>) ("::" : repeat "->")
 
-printAssignmentTree :: AssignmentTree -> Coercion -> Doc a
-printAssignmentTree (AssignmentLeaf exp) coer = printExpression exp coer
-printAssignmentTree (AssignmentNode var typ c) coer
+printAssignmentTree :: AssignmentTree -> Doc a
+printAssignmentTree (AssignmentLeaf exp) = printExpression exp
+printAssignmentTree (AssignmentNode var typ c)
     | length c == 1 = case head c of
-        AssignmentLeaf e -> printConstructor typ <+>  "(" <+> printAssignmentTree (head c) coer <> ")" 
-        AssignmentNode v t _ -> printConstructor typ <> printConstructor t <+> "(" <+> printAssignmentTree (head c) coer <> ")" 
+        AssignmentLeaf e -> printAssignmentTree (head c) 
+        AssignmentNode v t _ -> printConstructor typ <> pretty (capitalize v) <+> "(" <> printAssignmentTree (head c) <> ")" 
     | otherwise = case typ of
-        MakeType t _ _ _ _ -> "Make" <> pretty t <+> group (sep [printAssignmentTree child coer | child <- c])
-        BasicType _ -> sep [printAssignmentTree child coer | child <- c]
+        MakeType t _ _ _ _ -> "Make" <> pretty t <+> "{" <> hsep (punctuate "," [pretty (uncapitalize t) <> getVarName child <+> "=" <+> printAssignmentTree child | child <- c]) <> "}"
+        BasicType _ -> sep ["(" <> printAssignmentTree child <> ")" | child <- c]
+
+getVarName :: AssignmentTree -> Doc a
+getVarName (AssignmentLeaf _) = emptyDoc
+getVarName (AssignmentNode var _ _) = pretty (capitalize var)
 
 mergeAssignmentTrees :: [AssignmentTree] -> [AssignmentTree]
 mergeAssignmentTrees [] = []

@@ -69,7 +69,10 @@ listParser =
 variableParser :: Parser Expression
 variableParser =
     do
-        Variable <$> camelNameParser
+        name <- camelNameParser
+        if name == "endDate," then error "lool"
+        else return $ Variable name
+        --Variable <$> camelNameParser
 
 -- |Parses an integer in Rosetta into an Expression
 integerParser :: Parser Expression

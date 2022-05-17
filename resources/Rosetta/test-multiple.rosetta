@@ -11,6 +11,14 @@ type Obs:
   exchangeRate ExchangeRate (0..1)
   condition: one-of
 
+func Konst:
+  inputs:
+    constant number (1..1)
+  output:
+    observable Obs (1..1)
+  assign-output observable -> constant:
+    constant
+
 func ExchangeRateFunc:
   inputs:
     from int (1..1)
@@ -78,7 +86,7 @@ func MkExpired:
 
 func MkOne:
   inputs:
-    currency UnitType (1..1)
+    currency int (1..1)
   output:
     contract Contract (1..1)
   assign-output contract -> one -> currency:
@@ -105,3 +113,98 @@ func MkBoth:
     left
   assign-output contract -> both -> right:
     right
+
+func MkThereafter:
+  inputs:
+    earlier  Contract (1..1)
+    later Contract (1..1)
+  output:
+    contract Contract (1..1)
+  assign-output contract -> thereafter -> earlier:
+    earlier
+  assign-output contract -> thereafter -> later:
+    later
+
+func MkGive:
+  inputs:
+    subContract Contract (1..1)
+  output:
+    contract Contract (1..1)
+  assign-output contract -> give -> contract:
+    subContract
+
+func MkTruncate:
+  inputs:
+    truncateTo string      (1..1)
+    subContract Contract (1..1)
+  output:
+    contract Contract (1..1)
+  assign-output contract -> truncate -> contract:
+    subContract
+  assign-output contract -> truncate -> expiryDate:
+    truncateTo
+
+func MkScale:
+  inputs:
+    observable Obs (1..1)
+    subContract Contract (1..1)
+  output:
+    contract Contract (1..1)
+  assign-output contract -> scale -> contract:
+    subContract
+  assign-output contract -> scale -> observable:
+    observable
+
+func MkGet:
+  inputs:
+    subContract Contract (1..1)
+  output:
+    contract Contract (1..1)
+  assign-output contract -> get -> contract:
+    subContract
+
+func MkAnytime:
+  inputs:
+    subContract Contract (1..1)
+  output:
+    contract Contract (1..1)
+  assign-output contract -> anytime -> contract:
+    subContract
+
+func MkAnd:
+  inputs:
+    left Contract (1..1)
+    right Contract (1..1)
+  output:
+    contract Contract (1..1)
+  assign-output contract:
+    MkThereafter(MkBoth(left,right),MkOr(left,right))
+
+func ZeroCouponBond:
+  inputs:
+    maturesOn string   (1..1)  <"Date the bond matures on">
+    amount number     (1..1)  <"Amount of the bond is worth">
+    currency int (1..1)  <"Unit the bond is denoted in">
+  output:
+    contract Contract (1..1)
+  assign-output contract:
+    MkGet (MkTruncate(maturesOn, MkScale(Konst(amount),MkOne(currency))))
+
+func Perhaps:
+  inputs:
+    endDate  string     (1..1)
+    contract Contract (1..1)
+  output:
+    perhaps Contract (1..1)
+  assign-output perhaps:
+    MkTruncate(endDate,MkOr(contract,MkZero()))
+
+func EuropeanOption:
+  inputs:
+    endDate  string     (1..1)
+    contract Contract (1..1)
+  output:
+    option Contract (1..1)
+
+  assign-output option:
+    MkGet(Perhaps(endDate,contract))

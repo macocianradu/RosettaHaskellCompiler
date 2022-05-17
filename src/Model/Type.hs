@@ -58,6 +58,18 @@ data ExplicitExpression = ExplicitEmpty
     | ExplicitIfSimple {cond :: (ExplicitExpression, Coercion), block1 :: (ExplicitExpression, Coercion), returnCoercion :: Coercion}
     | ExplicitIfElse {cond :: (ExplicitExpression, Coercion), block1 :: (ExplicitExpression, Coercion), block2 :: (ExplicitExpression, Coercion), returnCoercion :: Coercion}
 
+changeCoercion :: ExplicitExpression -> Coercion -> ExplicitExpression
+changeCoercion ExplicitEmpty _ = ExplicitEmpty
+changeCoercion (ExplicitVariable n _) c = ExplicitVariable n c 
+changeCoercion (Value n _) c = Value n c
+changeCoercion (ExplicitList e) _ = ExplicitList e
+changeCoercion (ExplicitKeyword n) _ = ExplicitKeyword n
+changeCoercion (ExplicitParens e) _ = ExplicitParens e
+changeCoercion (ExplicitPath s n _) c = ExplicitPath s n c
+changeCoercion (ExplicitFunction n args _) c = ExplicitFunction n args c 
+changeCoercion (ExplicitIfSimple cond block _) c = ExplicitIfSimple cond block c
+changeCoercion (ExplicitIfElse cond block block2 _) c = ExplicitIfElse cond block block2 c       
+
 instance Show ExplicitExpression where
     show (ExplicitVariable name coer) = show $ "Variable: " ++ name
     show (Value name coer) = show $ "Value: " ++ name
@@ -139,7 +151,8 @@ toHaskell :: Type -> Type
 toHaskell a
     | typeName a == "int" = BasicType "Integer"
     | typeName a == "boolean" = BasicType "Boolean"
-    | typeName a == "real" = BasicType "Double"
+    | typeName a == "number" = BasicType "Double"
+    | typeName a == "string" = BasicType "String"
     | otherwise = a
 
 coercionType :: [TypeCoercion] -> Type

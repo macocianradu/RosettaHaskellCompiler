@@ -47,27 +47,6 @@ checkAttributes definedTypes ((MakeTypeAttribute name typ crd desc):as) =
         Left err -> Left err : checkAttributes definedTypes as
         Right checked -> Right (MakeTypeAttribute name checked crd desc) : checkAttributes definedTypes as 
 
-populateAttributeType :: [Type] -> [Type] -> TypeAttribute -> Either TypeCheckError TypeAttribute
-populateAttributeType _ _ (MakeTypeAttribute n (MakeType "int" _ _ _ _) c d ) = Right $ MakeTypeAttribute n (BasicType "Integer") c d 
-populateAttributeType _ _  (MakeTypeAttribute n (MakeType "string" _ _ _ _) c d ) = Right $ MakeTypeAttribute n (BasicType "String") c d 
-populateAttributeType _ _  (MakeTypeAttribute n (MakeType "number" _ _ _ _) c d ) = Right $ MakeTypeAttribute n (BasicType "Double") c d 
-populateAttributeType _ _  (MakeTypeAttribute n (MakeType "boolean" _ _ _ _) c d ) = Right $ MakeTypeAttribute n (BasicType "Bool") c d 
-populateAttributeType _ _  (MakeTypeAttribute n (MakeType "time" _ _ _ _) c d ) = Right $ MakeTypeAttribute n (BasicType "Time") c d 
-populateAttributeType _ _ (MakeTypeAttribute n (BasicType t) c d) = Right $ MakeTypeAttribute n (BasicType t) c d 
-populateAttributeType _ [] t = Left $ UndefinedType $ typeName $ attributeType t
-populateAttributeType t (definedT : ts) typ
-    | definedT == attributeType typ = 
-        let populatedAttr = map (populateAttributeType t t) (typeAttributes definedT) 
-        in
-        if null $ lefts populatedAttr 
-        then Right $ MakeTypeAttribute 
-            (attributeName typ) 
-            (MakeType (typeName definedT) (superType definedT) (typeDescription definedT) (rights populatedAttr) (conditions definedT)) 
-            (cardinality typ)
-            (attributeDescription typ)
-        else Left $ head $ lefts populatedAttr
-    | otherwise = populateAttributeType t ts typ
-
 -- |Checks whether a type is predefined or in the symbol table
 checkAttributeType :: [Type] -> Type -> Either TypeCheckError Type
 checkAttributeType [] t = Left $ UndefinedType $ typeName t

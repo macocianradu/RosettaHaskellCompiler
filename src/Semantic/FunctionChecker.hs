@@ -24,12 +24,15 @@ checkFunction (definedTypes, symbols) (MakeFunction (MakeFunctionSignature name 
 
 checkAssignment :: [Type] -> [Symbol] -> [(Expression, Expression)] -> Either [TypeCheckError] [(ExplicitExpression, ExplicitExpression)]
 checkAssignment _ _ [] = Right []
-checkAssignment defT symbs ((assign, ex): assigns) = 
+checkAssignment defT symbs ((assign, ex): assigns) =
     case checkExpression defT (tail symbs) ex of
     Left err -> Left [err]
     -- Here we use only tail symbs, beacuse the head of the symbol table is the out variable, and that can't be used in the expression body
     Right checkedExp -> case checkExpression defT symbs assign of
         Left err -> Left [err]
         Right checkedA -> case checkAssignment defT symbs assigns of
-            Left err -> Left err
-            Right checked -> Right $ (checkedA, checkedExp) : checked
+                Left err -> Left err
+                -- Add a final explicit transformation to match the expected output
+                Right checked -> case returnCoercion checkedExp `coercionIncluded` returnCoercion checkedA of
+                    Left err -> Left [err]
+                    Right c -> Right $ (checkedA, changeCoercion checkedExp c) : checked
