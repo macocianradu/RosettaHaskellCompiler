@@ -36,6 +36,7 @@ data Expression = Variable String
     | Int String
     | Real String
     | Boolean String
+    | Enum String String
     | Empty
     | Parens Expression
     | List [Expression]
@@ -51,8 +52,9 @@ data ExplicitExpression = ExplicitEmpty
     | ExplicitVariable {name :: String, returnCoercion :: Coercion}
     | Value {name :: String, returnCoercion :: Coercion}
     | ExplicitList [ExplicitExpression]
+    | ExplicitEnumCall {name :: String, val :: String, returnCoercion :: Coercion}
     | ExplicitKeyword String
-    | ExplicitParens ExplicitExpression
+    | ExplicitParens {expression :: ExplicitExpression, returnCoercion :: Coercion}
     | ExplicitPath {super :: ExplicitExpression, sub :: ExplicitExpression, returnCoercion :: Coercion}
     | ExplicitFunction {name :: String, args :: [(ExplicitExpression, Coercion)], returnCoercion :: Coercion}
     | ExplicitIfSimple {cond :: (ExplicitExpression, Coercion), block1 :: (ExplicitExpression, Coercion), returnCoercion :: Coercion}
@@ -64,23 +66,25 @@ changeCoercion (ExplicitVariable n _) c = ExplicitVariable n c
 changeCoercion (Value n _) c = Value n c
 changeCoercion (ExplicitList e) _ = ExplicitList e
 changeCoercion (ExplicitKeyword n) _ = ExplicitKeyword n
-changeCoercion (ExplicitParens e) _ = ExplicitParens e
+changeCoercion (ExplicitParens e _) c = ExplicitParens e c 
 changeCoercion (ExplicitPath s n _) c = ExplicitPath s n c
 changeCoercion (ExplicitFunction n args _) c = ExplicitFunction n args c 
 changeCoercion (ExplicitIfSimple cond block _) c = ExplicitIfSimple cond block c
-changeCoercion (ExplicitIfElse cond block block2 _) c = ExplicitIfElse cond block block2 c       
+changeCoercion (ExplicitIfElse cond block block2 _) c = ExplicitIfElse cond block block2 c    
+changeCoercion (ExplicitEnumCall n val _) c = ExplicitEnumCall n val c    
 
 instance Show ExplicitExpression where
     show (ExplicitVariable name coer) = show $ "Variable: " ++ name
     show (Value name coer) = show $ "Value: " ++ name
     show (ExplicitList lst) = concatMap show lst
     show (ExplicitKeyword name) = show $ "Keyword: " ++ name
-    show (ExplicitParens name) = show $ "(" ++ show name ++ ")"
+    show (ExplicitParens name coer) = show $ "(" ++ show name ++ ")"
     show (ExplicitPath super sub coer) = show $ "(->" ++ show super ++ " " ++ show sub ++ ")"
     show (ExplicitFunction name args coer) = show $ name ++ "(" ++ concatMap show args ++ ")" 
     show (ExplicitIfSimple cond block coer) = show $ "if" ++ show cond ++ " then " ++ show block
     show (ExplicitIfElse cond block1 block2 coer) = show $ "if" ++ show cond ++ " then " ++ show block1 ++ " else " ++ show block2
     show ExplicitEmpty = show "Empty"
+    show (ExplicitEnumCall n val coer) = show $ "Enumcall: " ++ n ++ "->" ++ val
 
 data TypeCoercion =
     MakeIdCoercion {toType :: Type}

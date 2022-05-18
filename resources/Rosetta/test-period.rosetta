@@ -1,21 +1,11 @@
 namespace test.period : <"Something">
 version "${version.ok}"
 
-
-type ExchangeRate:
-  from int (1..1)
-  to int (1..1)
-  
-
-type Obs:
-  constant number (0..1)
-  exchangeRate ExchangeRate (0..1)
-  condition: one-of
-
-func Konst:
+func PayoutParty1:
   inputs:
-    constant number (1..1)
+    payout PayoutBase (1..1)
+    contract Contract (1..1)
   output:
-    observable Obs (1..1)
-  assign-output observable -> constant:
-    constant
+    contractOut Contract (1..1)
+  assign-output contractOut:
+    if (payout -> payerReceiver -> payer = CounterpartyRoleEnum -> PARTY_1) or (payout -> payerReceiver -> receiver = CounterpartyRoleEnum -> PARTY_2) then MkGive(contract) else contract

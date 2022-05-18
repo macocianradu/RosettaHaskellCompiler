@@ -12,12 +12,12 @@ printType :: Type -> String
 printType (MakeType name (MakeType super _ _ _ _) description attributes conditions) = printType (MakeType name (BasicType "Object") description (superToAttribute super:attributes) conditions)
 printType (MakeType name (BasicType "Object") description attributes conditions) = 
     show $ printTypeName name description <+>
-    printAttributes name conditions attributes
+    printAttributes name conditions attributes <> line <> line
 printType (MakeType _ (BasicType _) _ _ _) = error "Can't extend basic types"
 printType (BasicType name) = show $ pretty name
    
 printTypeName :: String -> Maybe String -> Doc a
-printTypeName name desc = printDescription desc (line <> "data" <+> pretty name <+> "=") 
+printTypeName name desc = printDescription desc ("data" <+> pretty name <+> "=") 
 
 -- |Creates an attribute that accesses the super type
 superToAttribute :: String -> TypeAttribute
@@ -27,9 +27,9 @@ superToAttribute typ = MakeTypeAttribute "super" (MakeType typ (BasicType "Objec
 printAttributes :: String -> [Condition] -> [TypeAttribute] -> Doc a
 printAttributes objName conditions ats
     | MakeCondition Nothing (Keyword "one-of") `elem` conditions || length ats < 2 = vcat [nest 4 $ vcat $ 
-        zipWith (<>) ("" : repeat "| ") (map (printSumType objName) ats) ++ map printCondition conditions, emptyDoc, emptyDoc] 
+        zipWith (<>) ("" : repeat "| ") (map (printSumType objName) ats) ++ map printCondition conditions, " deriving (Eq)"]
     | otherwise = vcat [nest 4 $ vcat ("Make" <> pretty objName <+> "{" : 
-        reverse (zipWith (<>) (reverse (map (printAttribute objName) ats)) ("" : repeat ",")) ++ map printCondition conditions), "}", emptyDoc, emptyDoc]
+        punctuate comma (map (printAttribute objName) ats) ++ map printCondition conditions), "}"] <+> "deriving (Eq)"
    
 -- |Converts a TypeAttribute into a haskell valid Doc
 printAttribute :: String -> TypeAttribute -> Doc a

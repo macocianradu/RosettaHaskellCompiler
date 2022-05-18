@@ -20,7 +20,18 @@ functionParser =
         fDescription <- optional descriptionParser
         fInput <- inputAttributesParser
         fOutput <- outputAttributeParser
-        MakeFunction (MakeFunctionSignature fName fDescription fInput fOutput) <$> many assignmentParser
+        aliases <- many aliasParser
+        MakeFunction (MakeFunctionSignature fName fDescription fInput fOutput) aliases <$> many assignmentParser
+
+-- |Parses an alias definition from a function
+aliasParser :: Parser (String, Expression)
+aliasParser =
+    do 
+        _ <- lexeme $ string "alias"
+        name <- camelNameParser
+        _ <- lexeme $ char ':'
+        assign <- expressionParser
+        return (name, assign)
 
 -- parseTest assignmentParser (Text.pack "assign-output observable -> exchangeRate -> from: from")
 -- |Parses the output assignment statement from a function in Rosetta into an Expression

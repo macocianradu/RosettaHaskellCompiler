@@ -1,0 +1,420 @@
+namespace contractDSL : <"Generic product concepts: quantity, price, economic terms and payout, that are built using template features.">
+version "${project.version}"
+
+import imports.*
+
+
+type Obs:
+  constant number (0..1)
+  exchangeRate ExchangeRate (0..1)
+  condition: one-of
+
+type ExchangeRate:
+  from UnitType (1..1)
+  to UnitType(1..1)
+
+func Konst:
+  inputs:
+    constant number (1..1)
+  output:
+    observable Obs (1..1)
+  assign-output observable -> constant:
+    constant
+
+func ExchangeRateFunc:
+  inputs:
+    from UnitType (1..1)
+    to   UnitType (1..1)
+  output:
+    observable Obs (1..1)
+  assign-output observable -> exchangeRate -> from:
+    from
+  assign-output observable -> exchangeRate -> to:
+    to
+
+type Contract:
+  zero       Contract_Zero       (0..1)
+  expired    Contract_Expired    (0..1)
+  one        Contract_One        (0..1)
+  orContract Contract_Or         (0..1)
+  both       Contract_Both       (0..1)
+  give       Contract_Give       (0..1)
+  thereafter Contract_Thereafter (0..1)
+  truncate   Contract_Truncate   (0..1)
+  scale      Contract_Scale      (0..1)
+  get        Contract_Get        (0..1)
+  anytime    Contract_Anytime    (0..1)
+  condition: one-of
+
+type Contract_Zero:
+   unit int (1..1)
+type Contract_Expired:
+   unit int (1..1)
+type Contract_One:
+  currency UnitType (1..1)
+type Contract_Or:
+  left Contract (1..1)
+  right Contract (1..1)
+type Contract_Both:
+  left Contract (1..1)
+  right Contract (1..1)
+type Contract_Thereafter:
+  earlier Contract (1..1)
+  later   Contract (1..1)
+type Contract_Give:
+  contract Contract (1..1)
+type Contract_Truncate:
+  expiryDate string    (1..1)
+  contract   Contract (1..1)
+type Contract_Scale:
+  observable Obs (1..1)
+  contract Contract (1..1)
+type Contract_Get:
+  contract Contract (1..1)
+type Contract_Anytime:
+  contract Contract (1..1)
+
+func MkZero:
+  output:
+    contract Contract (1..1)
+  assign-output contract -> zero -> unit:
+    1 // create the zero contract dummy value
+
+func MkExpired:
+  output:
+    contract Contract (1..1)
+  assign-output contract -> expired -> unit:
+    1 // create the expired contract dummy value
+
+func MkOne:
+  inputs:
+    currency UnitType (1..1)
+  output:
+    contract Contract (1..1)
+  assign-output contract -> one -> currency:
+    currency
+
+func MkOr:
+  inputs:
+    left  Contract (1..1)
+    right Contract (1..1)
+  output:
+    contract Contract (1..1)
+  assign-output contract -> orContract -> left:
+    left
+  assign-output contract -> orContract -> right:
+    right
+
+func MkBoth:
+  inputs:
+    left  Contract (1..1)
+    right Contract (1..1)
+  output:
+    contract Contract (1..1)
+  assign-output contract -> both -> left:
+    left
+  assign-output contract -> both -> right:
+    right
+
+func MkThereafter:
+  inputs:
+    earlier  Contract (1..1)
+    later Contract (1..1)
+  output:
+    contract Contract (1..1)
+  assign-output contract -> thereafter -> earlier:
+    earlier
+  assign-output contract -> thereafter -> later:
+    later
+
+func MkGive:
+  inputs:
+    subContract Contract (1..1)
+  output:
+    contract Contract (1..1)
+  assign-output contract -> give -> contract:
+    subContract
+
+func MkTruncate:
+  inputs:
+    truncateTo string     (1..1)
+    subContract Contract (1..1)
+  output:
+    contract Contract (1..1)
+  assign-output contract -> truncate -> contract:
+    subContract
+  assign-output contract -> truncate -> expiryDate:
+    truncateTo
+
+func MkScale:
+  inputs:
+    observable Obs (1..1)
+    subContract Contract (1..1)
+  output:
+    contract Contract (1..1)
+  assign-output contract -> scale -> contract:
+    subContract
+  assign-output contract -> scale -> observable:
+    observable
+
+func MkGet:
+  inputs:
+    subContract Contract (1..1)
+  output:
+    contract Contract (1..1)
+  assign-output contract -> get -> contract:
+    subContract
+
+func MkAnytime:
+  inputs:
+    subContract Contract (1..1)
+  output:
+    contract Contract (1..1)
+  assign-output contract -> anytime -> contract:
+    subContract
+
+func MkAnd:
+  inputs:
+    left Contract (1..1)
+    right Contract (1..1)
+  output:
+    contract Contract (1..1)
+  assign-output contract:
+    MkThereafter(MkBoth(left,right),MkOr(left,right))
+
+func ZeroCouponBond:
+  inputs:
+    maturesOn string   (1..1)  <"Date the bond matures on">
+    amount number     (1..1)  <"Amount of the bond is worth">
+    currency UnitType (1..1)  <"Unit the bond is denoted in">
+  output:
+    contract Contract (1..1)
+  assign-output contract:
+    MkGet (MkTruncate(maturesOn, MkScale(Konst(amount),MkOne(currency))))
+
+func Perhaps:
+  inputs:
+    endDate  string    (1..1)
+    contract Contract (1..1)
+  output:
+    perhaps Contract (1..1)
+  assign-output perhaps:
+    MkTruncate(endDate,MkOr(contract,MkZero()))
+
+func EuropeanOption:
+  inputs:
+    endDate  string    (1..1)
+    contract Contract (1..1)
+  output:
+    option Contract (1..1)
+
+  assign-output option:
+    MkGet(Perhaps(endDate,contract))
+
+func AmericanOption:
+  inputs:
+    startDate string   (1..1)
+    endDate   string   (1..1)
+    contract Contract (1..1)
+  output:
+    option Contract (1..1)
+  alias opt: MkAnytime(Perhaps(endDate,contract))
+  assign-output option:
+    MkThereafter(MkGet (MkTruncate(startDate,opt)),opt)
+
+/* Swap the parties of a contract based on the party of a payout. Assuming we are Party1 */
+func PayoutParty1:
+  inputs:
+    payout PayoutBase (1..1)
+    contract Contract (1..1)
+  output:
+    contractOut Contract (1..1)
+  assign-output contractOut:
+    if (payout -> payerReceiver -> payer = CounterpartyRoleEnum -> Party1)
+    or (payout -> payerReceiver -> receiver = CounterpartyRoleEnum -> Party2) then
+      MkGive(contract)
+    else
+      contract
+
+/*
+func ResolveQuantity:
+  inputs:
+    address Address (1..1)
+    tradeLot TradeLot (1..*)
+  output:
+    quantity ResolvedQuantity (1..1)
+
+  alias resolvedValue:
+    tradeLot
+    map [item -> priceQuantity]
+    flatten
+    map [item -> quantity]
+    flatten
+    filter [item -> meta -> location only-element = address]
+    only-element
+    -> value
+
+  assign-output quantity -> multiplier:
+    resolvedValue -> amount
+
+  assign-output quantity -> unitOfAmount:
+    resolvedValue -> unitOfAmount
+
+func CashflowPayoutToContract:
+  inputs:
+    cashflow Cashflow (1..1)
+    tradeLot TradeLot (1..*)
+    settlementTerms SettlementTerms (0..1)
+  output:
+    zcb Contract (1..1)
+
+  alias quantity:
+    ResolveQuantity(cashflow -> payoutQuantity -> resolvedQuantity -> address, tradeLot)
+
+  alias fixingDate:
+    if settlementTerms -> cashSettlementTerms exists then
+      settlementTerms
+      -> cashSettlementTerms
+      only-element
+      -> valuationDate
+      -> fxFixingDate
+      -> fxFixingDate
+      -> adjustableDate
+      -> unadjustedDate
+    else
+      empty
+
+  assign-output zcb:
+    PayoutParty1
+    ( cashflow
+    , MkScale
+      ( Konst (quantity -> multiplier)
+      , if fixingDate exists then
+          MkGet
+          ( MkTruncate
+            ( fixingDate
+            , MkScale
+              ( ExchangeRate(quantity -> unitOfAmount -> currency, settlementTerms -> settlementCurrency)
+              , MkGet
+                ( MkTruncate
+                  ( settlementTerms -> settlementDate -> valueDate
+                  , MkOne (settlementTerms -> settlementCurrency)
+                  )
+                )
+              )
+            )
+          )
+        else
+          MkOne(quantity -> unitOfAmount -> currency))
+    )
+
+
+func ForeignExchangeToContract:
+  inputs:
+    foreignExchange ForeignExchange (1..1)
+    tradeLot TradeLot (0..*)
+    settlementTerms SettlementTerms (0..1)
+  output:
+    contract Contract (1..1)
+
+  assign-output contract:
+    MkBoth
+      ( CashflowPayoutToContract(foreignExchange -> exchangedCurrency1, tradeLot, settlementTerms)
+      , CashflowPayoutToContract(foreignExchange -> exchangedCurrency2, tradeLot, settlementTerms)
+      )
+
+func ForwardPayoutToContract:
+  inputs:
+    fx                    ForwardPayout (1..1)
+    tradeLot              TradeLot (0..*)
+  output:
+    contract Contract (1..1)
+  assign-output contract:
+    MkGet
+      ( MkTruncate
+          ( fx -> settlementTerms -> settlementDate -> valueDate
+          , ForeignExchangeToContract
+              ( fx -> underlier -> foreignExchange
+              , tradeLot
+              , fx -> settlementTerms
+              )
+          )
+      )
+
+func OptionPayoutToEuropean:
+  inputs:
+    optionPayout OptionPayout (1..1)
+    tradeLot     TradeLot     (0..*)
+  output:
+    contract Contract (1..1)
+
+  alias europeanExerciseTerms:
+    optionPayout -> exerciseTerms -> optionStyle -> europeanExercise
+  alias adjustedExpirationDate:
+    europeanExerciseTerms -> expirationDate only-element -> adjustableDate -> adjustedDate -> value
+
+  condition IsEuropean:
+    europeanExerciseTerms exists
+  condition HasAdjustedDate:
+    adjustedExpirationDate exists
+  assign-output contract:
+    EuropeanOption
+      ( adjustedExpirationDate only-element
+        // The cardinality on europeanExerciseTerms -> expirationDate is not (1..1)!
+      , ProductToContract(optionPayout -> underlier, tradeLot, optionPayout -> settlementTerms)
+      , optionPayout -> settlementTerms
+      )
+
+func ContractualProductToContract:
+  inputs:
+    contractualProduct ContractualProduct (1..*)
+    tradeLot           TradeLot           (0..*)
+    settlementTerms    SettlementTerms    (0..*)
+  output:
+    contract Contract (1..1)
+  alias payout: contractualProduct -> economicTerms -> payout
+  assign-output contract:
+    if payout -> optionPayout exists then
+      payout
+      -> optionPayout
+      map [OptionPayoutToEuropean(item,tradeLot)]
+      reduce-left c1 c2 [MkBoth(c1,c2)]
+
+    else if payout -> forwardPayout exists then
+      payout
+      -> forwardPayout
+      map [ForwardPayoutToContract(item,tradeLot)]
+      reduce-left c1 c2 [MkBoth(c1,c2)]
+
+    else /* assume cashflow otherwise */
+/*      payout
+      -> cashflow
+      map [CashflowPayoutToContract(item,tradeLot,settlementTerms)]
+      reduce-left c1 c2 [MkBoth(c1,c2)]
+
+func ProductToContract:
+  inputs:
+    product         Product         (1..*)
+    tradeLot        TradeLot        (0..*)
+    settlementTerms SettlementTerms (0..*)
+  output:
+    contract Contract (1..1)
+
+  assign-output contract:
+    if product -> contractualProduct exists then
+      ContractualProductToContract(product -> contractualProduct, tradeLot, settlementTerms)
+    else if product -> foreignExchange exists then
+      ForeignExchangeToContract(product -> foreignExchange, tradeLot, settlementTerms)
+    else
+      MkZero()
+
+func Main:
+  inputs:
+    meta MetaData (1..1)
+    trade Trade (1..1)
+  output:
+    contract Contract (1..1)
+
+ assign-output contract:
+   ProductToContract(trade -> tradableProduct -> product, trade -> tradableProduct -> tradeLot, empty)
+*/

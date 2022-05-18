@@ -8,17 +8,21 @@ import Semantic.ExpressionChecker(coercionIncluded)
 import Utils.Utils
 
 printExpression :: ExplicitExpression -> Doc a
-printExpression ExplicitEmpty = "[]" 
+printExpression ExplicitEmpty = "[]"
 printExpression (ExplicitVariable name coer) = printCoercion coer $ pretty name
 printExpression (Value s coer) = printCoercion coer $ pretty s
 printExpression (ExplicitKeyword k) = pretty k
-printExpression (ExplicitParens ex) = "(" <> printExpression ex <> ")"
+printExpression (ExplicitEnumCall name val coer) = printCoercion coer $ pretty name <> pretty val
+printExpression (ExplicitParens ex c) = "(" <> printExpression ex <> ")"
 printExpression (ExplicitList ex)  = list [printExpression x | x <- ex]
-printExpression (ExplicitPath ex1 ex2 returnCoerce) = printCoercion (returnCoercion ex1) (printExpression ex1) <+> "->" <+> printCoercion (returnCoercion ex2) (printExpression ex2)
+printExpression (ExplicitPath ex1 (ExplicitVariable var ret) returnCoerce) =
+    pretty (uncapitalize $ typeName $ coercionType $ typeCoercion $ returnCoercion ex1) <> pretty (capitalize var) <+> 
+    enclose "(" ")" (printExpression ex1)
+printExpression ExplicitPath {} = error "This should never happen. Path Expression 2nd argument is not variable"
 printExpression (ExplicitFunction "exists" args returnCoerce) = printCoercion returnCoerce "isJust" <+> printCoercion (snd $ head args) (printExpression (fst $ head args))
 printExpression (ExplicitFunction "is absent" args returnCoerce) = printCoercion returnCoerce "isNothing" <+> printCoercion (snd $ head args) (printExpression (fst $ head args))
 printExpression (ExplicitFunction "single exists" args returnCoerce) = printCoercion returnCoerce "length" <+> printCoercion (snd $ head args) (printExpression (fst $ head args)) <+> "==" <+> "1"
-printExpression (ExplicitFunction "multiple exists" args returnCoerce) = printCoercion returnCoerce "length" <+> printCoercion (snd $ head args) (printExpression (fst $ head args)) <+> ">" <+> "1" 
+printExpression (ExplicitFunction "multiple exists" args returnCoerce) = printCoercion returnCoerce "length" <+> printCoercion (snd $ head args) (printExpression (fst $ head args)) <+> ">" <+> "1"
 printExpression (ExplicitFunction "count" args returnCoerce) = printCoercion returnCoerce "length" <+> printCoercion (snd $ head args) (printExpression (fst $ head args))
 -- Equality expressions
 -- [a] a all = 
@@ -30,19 +34,19 @@ printExpression (ExplicitFunction "all <>" args returnCoerce) = printCoercion (s
 printExpression (ExplicitFunction "all =" args returnCoerce) = "all (Eq)" <+> printCoercion (snd $ head $ tail args) (printExpression (fst $ head $ tail args)) <+> printCoercion (snd $ head args) (printExpression (fst $ head args))
 printExpression (ExplicitFunction "and" args returnCoerce) = printCoercion (snd $ head args) (printExpression (fst $ head args)) <+> "&&" <+> printCoercion (snd $ head $ tail args) (printExpression (fst $ head $ tail args))
 printExpression (ExplicitFunction "or" args returnCoerce) = printCoercion (snd $ head args) (printExpression (fst $ head args)) <+> "||" <+> printCoercion (snd $ head $ tail args) (printExpression (fst $ head $ tail args))
-printExpression (ExplicitFunction name args returnCoerce) = 
-    if null printedArgs then pretty (uncapitalize name) 
+printExpression (ExplicitFunction name args returnCoerce) =
+    if null printedArgs then pretty (uncapitalize name)
     else  "(" <> pretty (uncapitalize name) <+> printCoercion returnCoerce (hsep printedArgs) <> ")"
     where printedArgs = zipWith printCoercion [c | (e,c) <- args] [printExpression e | (e, c) <- args]
-printExpression (ExplicitIfSimple cond thenBlock returnCoercion) = 
-    "if" <+> printCoercion (snd cond) (printExpression (fst cond)) <+> 
-    "then" <+> printCoercion (snd thenBlock) (printExpression (fst thenBlock)) <+> 
+printExpression (ExplicitIfSimple cond thenBlock returnCoercion) =
+    "if" <+> printCoercion (snd cond) (printExpression (fst cond)) <+>
+    "then" <+> printCoercion (snd thenBlock) (printExpression (fst thenBlock)) <+>
     "else" <+> case MakeCoercion [MakeIdCoercion $ coercionType $ typeCoercion returnCoercion] (MakeCardinalityIdCoercion (Bounds (0, 0))) `coercionIncluded` returnCoercion of
         Left err -> error $ show err
         Right c -> printCoercion c emptyDoc
-printExpression (ExplicitIfElse cond thenBlock elseBlock returnCoercion) = 
-    "if" <+> printCoercion (snd cond) (printExpression (fst cond)) <+> 
-    "then" <+> printCoercion (snd thenBlock) (printExpression (fst thenBlock)) <+> 
+printExpression (ExplicitIfElse cond thenBlock elseBlock returnCoercion) =
+    "if" <+> printCoercion (snd cond) (printExpression (fst cond)) <+>
+    "then" <+> printCoercion (snd thenBlock) (printExpression (fst thenBlock)) <+>
     "else" <+> printCoercion (snd elseBlock) (printExpression (fst elseBlock))
 
 -- |Converts a coercion into a haskell string

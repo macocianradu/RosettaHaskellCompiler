@@ -208,3 +208,14 @@ func EuropeanOption:
 
   assign-output option:
     MkGet(Perhaps(endDate,contract))
+
+func AmericanOption:
+  inputs:
+    startDate string    (1..1)
+    endDate   string    (1..1)
+    contract Contract (1..1)
+  output:
+    option Contract (1..1)
+  alias opt: MkAnytime(Perhaps(endDate,contract))
+  assign-output option:
+    MkThereafter(MkGet (MkTruncate(startDate,opt)),opt)

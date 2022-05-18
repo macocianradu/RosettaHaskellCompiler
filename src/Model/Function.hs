@@ -15,6 +15,7 @@ data FunctionSignature =
 data Function = 
     MakeFunction {
         signature :: FunctionSignature,
+        aliases :: [(String, Expression)],
         assignment :: [(Expression, Expression)]
     }
     deriving (Show)
@@ -22,6 +23,7 @@ data Function =
 data ExplicitFunction = 
     MakeExplicitFunction {
         sign :: FunctionSignature,
+        explicitAliases :: [(String, ExplicitExpression)],
         explicitAssignment :: [(ExplicitExpression, ExplicitExpression)] 
     }
     deriving Show

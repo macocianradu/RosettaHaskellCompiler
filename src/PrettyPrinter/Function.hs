@@ -36,15 +36,19 @@ instance Show AssignmentTree where
 
 -- |Converts a Function into a haskell valid String
 printFunction :: ExplicitFunction -> String
-printFunction f = show $ vcat [printFunctionSignature (sign f), printFunctionBody f, emptyDoc]
+printFunction f = show $ vcat [printFunctionSignature (sign f), printFunctionBody f, line]
 
 -- |Converts the body of a Function into a haskell valid Doc
 printFunctionBody :: ExplicitFunction -> Doc a
-printFunctionBody (MakeExplicitFunction (MakeFunctionSignature name _ inp out) ex) =
+printFunctionBody (MakeExplicitFunction (MakeFunctionSignature name _ inp out) alias ex) =
     pretty name <+> printVariableNames inp <+> "=" <+> 
-    printAssignmentTree (head $ mergeAssignmentTrees [convertToAssignmentTree (fst exp) (AssignmentLeaf (snd exp)) | exp <- ex])
+    nest 4 (vsep (map printAlias alias ++
+    [printAssignmentTree (head $ mergeAssignmentTrees [convertToAssignmentTree (fst exp) (AssignmentLeaf (snd exp)) | exp <- ex])]))
     --error $ show $ mergeAssignmentTrees [convertToAssignmentTree (fst exp) (AssignmentLeaf (snd exp)) | exp <- ex]
 
+
+printAlias :: (String, ExplicitExpression) -> Doc a
+printAlias (name, exp) = "let" <+> pretty name <+> "=" <+> printExpression exp <+> "in"   
 
 -- |Converts a function into a haskell valid Doc representing the signature of the function
 printFunctionSignature :: FunctionSignature -> Doc a

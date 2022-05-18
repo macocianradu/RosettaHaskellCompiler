@@ -25,9 +25,9 @@ import Data.Tuple (fst, snd)
 import Data.Void
 import Utils.Utils
 import Data.Text (Text)
-
--- :l resources/Generated/testMultiple.hs
--- :set args resources/Rosetta/test-multiple.rosetta
+import Parser.Expression (expressionParser)
+-- :l resources/Generated/ContractDSL.hs resources/Generated/Imports.hs
+-- :set args resources/Rosetta/Contracts/contractDSL.rosetta
 
 -- :set args resources/Rosetta/test-all.rosetta
 -- :l resources/Generated/testAll.hs resources/Generated/testPeriod.hs
@@ -117,7 +117,7 @@ addNewTypes defined (TypeObject o: os) =
     case addNewTypes defined os of
         Left errors -> Left errors
         Right types -> addDefinedTypes types [o]
-addNewTypes defined (EnumObject (MakeEnum name _ _): os) = addNewTypes defined (TypeObject (MakeType name (BasicType "Object") Nothing [] []) : os)
+addNewTypes defined (EnumObject e: os) = addNewTypes defined (TypeObject (convertEnumToType e) : os)
 addNewTypes defined (_ :os) = addNewTypes defined os
 
 -- |Parses any supported Rosetta types into a list of RosettaObject

@@ -25,7 +25,8 @@ enumValueParser =
         vName <- try nameParser
         dName <- optional enumValueDisplayNameParser
         vDescription <- optional descriptionParser
-        return (MakeEnumValue vName vDescription dName)
+        let name = if head vName == '_' then 'X' : tail vName else vName in
+            return (MakeEnumValue name vDescription dName)
 
 
 -- |Parses the display name of a Rosetta enum value into a String

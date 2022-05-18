@@ -39,7 +39,7 @@ ifParser :: Parser Expression
 ifParser =
     do
         _ <- lexeme $ string "if"
-        condition <- lexeme $ between (char '(') (char ')') expressionParser <|> expressionParser
+        condition <- lexeme $ expressionParser <|> between (char '(') (char ')') expressionParser
         _ <- lexeme $ string "then"
         expr <- expressionParser
         els <- observing $ lexeme $ string "else"
@@ -69,10 +69,14 @@ listParser =
 variableParser :: Parser Expression
 variableParser =
     do
-        name <- camelNameParser
-        if name == "endDate," then error "lool"
-        else return $ Variable name
-        --Variable <$> camelNameParser
+        Variable <$> camelNameParser
+
+enumValueParser :: Parser Expression
+enumValueParser =
+    do
+        enum <- pascalNameParser
+        _ <- lexeme $ string "->"
+        Enum enum <$> pascalNameParser
 
 -- |Parses an integer in Rosetta into an Expression
 integerParser :: Parser Expression
@@ -118,6 +122,7 @@ terminalParser =
              try emptyParser,
              try decimalParser,
              try variableParser,
+             try enumValueParser,
              integerParser
             ]
 
