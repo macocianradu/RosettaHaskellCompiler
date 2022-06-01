@@ -1,7 +1,8 @@
 namespace contractDSL : <"Generic product concepts: quantity, price, economic terms and payout, that are built using template features.">
 version "${project.version}"
 
-import imports.*
+import imports.types.*
+import imports.enums.*
 
 
 type Obs:
@@ -236,13 +237,13 @@ func PayoutParty1:
     else
       contract
 
-/*
+
 func ResolveQuantity:
   inputs:
     address Address (1..1)
     tradeLot TradeLot (1..*)
   output:
-    quantity ResolvedQuantity (1..1)
+    resolvedQuantity Quantity (1..1)
 
   alias resolvedValue:
     tradeLot
@@ -250,14 +251,13 @@ func ResolveQuantity:
     flatten
     map [item -> quantity]
     flatten
-    filter [item -> meta -> location only-element = address]
+    filter [item -> location = address]
     only-element
-    -> value
 
-  assign-output quantity -> multiplier:
-    resolvedValue -> amount
+  assign-output resolvedQuantity -> multiplier:
+    resolvedValue -> value
 
-  assign-output quantity -> unitOfAmount:
+  assign-output resolvedQuantity -> unitOfAmount:
     resolvedValue -> unitOfAmount
 
 func CashflowPayoutToContract:
@@ -269,7 +269,7 @@ func CashflowPayoutToContract:
     zcb Contract (1..1)
 
   alias quantity:
-    ResolveQuantity(cashflow -> payoutQuantity -> resolvedQuantity -> address, tradeLot)
+    ResolveQuantity(cashflow -> payoutQuantity -> resolvedQuantity -> location, tradeLot)
 
   alias fixingDate:
     if settlementTerms -> cashSettlementTerms exists then
@@ -308,7 +308,7 @@ func CashflowPayoutToContract:
           MkOne(quantity -> unitOfAmount -> currency))
     )
 
-
+/*
 func ForeignExchangeToContract:
   inputs:
     foreignExchange ForeignExchange (1..1)
@@ -410,7 +410,7 @@ func ProductToContract:
 
 func Main:
   inputs:
-    meta MetaData (1..1)
+    //meta MetaData (1..1)
     trade Trade (1..1)
   output:
     contract Contract (1..1)

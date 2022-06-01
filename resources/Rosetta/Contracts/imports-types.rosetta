@@ -1,0 +1,70 @@
+namespace imports.types : <"Types used for the contract dsl">
+version "${version.ok}"
+
+import imports.enums.*
+
+type UnitType:
+	capacityUnit	CapacityUnitEnum	(0..1)
+	financialUnit 	FinancialUnitEnum 	(0..1)
+	currency		string				(0..1)
+	
+	condition: one-of
+
+type PayoutBase:
+	payerReceiver 	PayerReceiver 			 (1..1)
+	payoutQuantity 	ResolvablePayoutQuantity (1..1)
+	
+type PayerReceiver:
+	payer 		CounterpartyRoleEnum 	(1..1)
+	receiver 	CounterpartyRoleEnum 	(1..1)
+	
+type Address:
+	street 		string 	(1..*)
+	city 		string 	(1..1)
+	state 		string 	(0..1)
+	country 	string 	(1..1)
+	postalCode 	string 	(1..1)
+	
+type TradeLot:
+	priceQuantity PriceQuantity (1..*)
+	
+type PriceQuantity:
+	quantity Quantity (0..*)
+	
+type Quantity:
+	location 		Address 	(1..1)
+	multiplier		number		(0..1)
+	value			number 		(0..1)
+	unitOfAmount	UnitType	(0..1)
+	
+type ResolvablePayoutQuantity:
+	resolvedQuantity	Quantity	(0..1)
+	
+type Cashflow extends PayoutBase:
+
+type SettlementTerms:
+	cashSettlementTerms	CashSettlementTerms (0..*)
+	settlementDate		SettlementDate		(0..1)
+	settlementCurrency	string				(0..1)
+	
+type SettlementDate:
+	valueDate	string	(0..1) //date
+
+type CashSettlementTerms:
+	valuationDate	ValuationDate (0..1)
+	
+type ValuationDate:
+	fxFixingDate	FxFixingDate (0..1)
+	
+type FxFixingDate:
+	fxFixingDate 	AdjustableOrRelativeDate (0..1)
+	
+type AdjustableOrRelativeDate:
+	adjustableDate	AdjustableDate (0..1)
+
+type AdjustableDate:
+	unadjastableDate string (0..1) //date
+	
+type ForeignExchange:
+	exchangedCurrency1	Cashflow	(1..1)	
+	exchangedCurrency2	Cashflow	(1..1)

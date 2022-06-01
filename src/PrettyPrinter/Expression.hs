@@ -6,15 +6,24 @@ import Model.Type
 import Prettyprinter
 import Semantic.ExpressionChecker(coercionIncluded)
 import Utils.Utils
+import Data.List (isPrefixOf)
 
 printExpression :: ExplicitExpression -> Doc a
 printExpression ExplicitEmpty = "[]"
-printExpression (ExplicitVariable name coer) = printCoercion coer $ pretty name
+printExpression (ExplicitVariable name coer)
+    | "item" `isPrefixOf` name = printCoercion coer $ pretty (replacePrefix "item" name "x") 
+    | otherwise = printCoercion coer $ pretty name
 printExpression (Value s coer) = printCoercion coer $ pretty s
 printExpression (ExplicitKeyword k) = pretty k
 printExpression (ExplicitEnumCall name val coer) = printCoercion coer $ pretty name <> pretty val
 printExpression (ExplicitParens ex c) = "(" <> printExpression ex <> ")"
-printExpression (ExplicitList ex)  = list [printExpression x | x <- ex]
+printExpression (ExplicitList ex) = Prettyprinter.list [printExpression x | x <- ex]
+printExpression (ExplicitListOp "map" lst cond coer) = enclose "[" "]" (printExpression cond <+> "|" <+> "x" <+> "<-" <+> printExpression lst)
+printExpression (ExplicitListOp "filter" lst cond coer) = enclose "[" "]" ("x" <+> "|" <+> "x" <+> "<-" <+> printExpression lst <> "," <+>  printExpression cond)
+printExpression (ExplicitListOp op lst cond coer) = pretty op <+> nest 4 (vsep [emptyDoc, enclose "(" ")" (printExpression cond), enclose "(" ")" (printExpression lst)])
+printExpression (ExplicitListUnaryOp "only-element" lst coer) = "head" <+> enclose "(" ")" (nest 4 (line <> printExpression lst))
+printExpression (ExplicitListUnaryOp "flatten" lst coer) = "concat" <+> enclose "(" ")" (nest 4 (line <> printExpression lst))
+printExpression (ExplicitListUnaryOp op lst coer) = pretty op <+> nest 4 (printExpression lst)
 printExpression (ExplicitPath ex1 (ExplicitVariable var ret) returnCoerce) =
     pretty (uncapitalize $ typeName $ coercionType $ typeCoercion $ returnCoercion ex1) <> pretty (capitalize var) <+> 
     enclose "(" ")" (printExpression ex1)

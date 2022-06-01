@@ -48,7 +48,7 @@ printFunctionBody (MakeExplicitFunction (MakeFunctionSignature name _ inp out) a
 
 
 printAlias :: (String, ExplicitExpression) -> Doc a
-printAlias (name, exp) = "let" <+> pretty name <+> "=" <+> printExpression exp <+> "in"   
+printAlias (name, exp) = nest 4 (line <> "let" <+> pretty name <+> "=" <+> nest 8 (line <> printExpression exp) <+> "in")   
 
 -- |Converts a function into a haskell valid Doc representing the signature of the function
 printFunctionSignature :: FunctionSignature -> Doc a
@@ -66,7 +66,7 @@ printAssignmentTree (AssignmentNode var typ c)
         AssignmentLeaf e -> printAssignmentTree (head c) 
         AssignmentNode v t _ -> printConstructor typ <> pretty (capitalize v) <+> "(" <> printAssignmentTree (head c) <> ")" 
     | otherwise = case typ of
-        MakeType t _ _ _ _ -> "Make" <> pretty t <+> "{" <> hsep (punctuate "," [pretty (uncapitalize t) <> getVarName child <+> "=" <+> printAssignmentTree child | child <- c]) <> "}"
+        MakeType t _ _ _ _ -> "make" <> pretty t <+> "{" <> hsep (punctuate "," [pretty (uncapitalize t) <> getVarName child <+> "=" <+> printAssignmentTree child | child <- c]) <> "}"
         BasicType _ -> sep ["(" <> printAssignmentTree child <> ")" | child <- c]
 
 getVarName :: AssignmentTree -> Doc a

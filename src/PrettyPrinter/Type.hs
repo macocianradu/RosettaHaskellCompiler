@@ -19,6 +19,11 @@ printType (BasicType name) = show $ pretty name
 printTypeName :: String -> Maybe String -> Doc a
 printTypeName name desc = printDescription desc ("data" <+> pretty name <+> "=") 
 
+printDefault :: String -> String -> [TypeAttribute] -> Doc a
+printDefault name cons ats = "make" <> pretty name <+> "=" <+> pretty cons <+> "{" <> sep (punctuate "," 
+    ([pretty (uncapitalize name) <> pretty (capitalize (attributeName x)) <+> "=" <+> "Nothing" | x <- ats, cardinality x == Bounds (0, 1)] ++ 
+    [pretty (uncapitalize name) <> pretty (capitalize (attributeName x)) <+> "=" <+> "[]" | x <- ats, lowerBound (cardinality x) == 0 && upperBound (cardinality x) > 1])) <> "}"
+
 -- |Creates an attribute that accesses the super type
 superToAttribute :: String -> TypeAttribute
 superToAttribute typ = MakeTypeAttribute "super" (MakeType typ (BasicType "Object") Nothing [] []) (Bounds (1, 1)) (Just "Pointer to super class")  
@@ -26,10 +31,12 @@ superToAttribute typ = MakeTypeAttribute "super" (MakeType typ (BasicType "Objec
 -- |Converts a list of TypeAttributes into a list of haskell valid Docs 
 printAttributes :: String -> [Condition] -> [TypeAttribute] -> Doc a
 printAttributes objName conditions ats
-    | MakeCondition Nothing (Keyword "one-of") `elem` conditions || length ats < 2 = vcat [nest 4 $ vcat $ 
-        zipWith (<>) ("" : repeat "| ") (map (printSumType objName) ats) ++ map printCondition conditions, " deriving (Eq)"]
+    | MakeCondition Nothing (Keyword "one-of") `elem` conditions = vcat [nest 4 $ vcat $ 
+        zipWith (<>) ("" : repeat "| ") (map (printSumType objName) (increaseBound ats)) ++ map printCondition conditions, " deriving (Eq)"]
+    | length ats < 2 = vcat [nest 4 $ vcat $ 
+        zipWith (<>) ("" : repeat "| ") (map (printSumType objName) ats) ++ map printCondition conditions, " deriving (Eq)", printDefault objName (objName ++ capitalize (attributeName (head ats))) ats]
     | otherwise = vcat [nest 4 $ vcat ("Make" <> pretty objName <+> "{" : 
-        punctuate comma (map (printAttribute objName) ats) ++ map printCondition conditions), "}"] <+> "deriving (Eq)"
+        punctuate comma (map (printAttribute objName) ats) ++ map printCondition conditions), "}"] <+> "deriving (Eq)" <> line <> printDefault objName ("Make" ++ objName) ats
    
 -- |Converts a TypeAttribute into a haskell valid Doc
 printAttribute :: String -> TypeAttribute -> Doc a
@@ -49,4 +56,10 @@ printCondition :: Condition -> Doc a
 printCondition (MakeCondition desc e) = printDescription desc ("--" <+> pretty (show e))
 
 printSumType :: String -> TypeAttribute -> Doc a
-printSumType objName (MakeTypeAttribute name typ crd _) = pretty objName <> pretty (capitalize name) <+> pretty (typeName typ)
+printSumType objName (MakeTypeAttribute name typ crd d) = pretty objName <> pretty (capitalize name) <+> "{"<> pretty (uncapitalize objName) <> pretty (capitalize name) <+> "::" <+> printCardinality (MakeTypeAttribute name typ crd d) <> "}"
+
+-- |Increase the lower bound when it is 0 to 1. Used for printing types with "one-of" condition
+increaseBound :: [TypeAttribute] -> [TypeAttribute]
+increaseBound [] = []
+increaseBound (MakeTypeAttribute name typ (Bounds (0, b)) desc : ts) = MakeTypeAttribute name typ (Bounds (1, b)) desc : increaseBound ts
+increaseBound (t : ts) = t : increaseBound ts

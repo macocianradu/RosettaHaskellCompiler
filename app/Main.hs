@@ -26,7 +26,7 @@ import Data.Void
 import Utils.Utils
 import Data.Text (Text)
 import Parser.Expression (expressionParser)
--- :l resources/Generated/ContractDSL.hs resources/Generated/Imports.hs
+-- :l resources/Generated/ContractDSL.hs resources/Generated/ImportsTypes.hs resources/Generated/ImportsEnums.hs
 -- :set args resources/Rosetta/Contracts/contractDSL.rosetta
 
 -- :set args resources/Rosetta/test-all.rosetta

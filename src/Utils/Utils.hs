@@ -2,6 +2,7 @@ module Utils.Utils where
     
 import Data.Either
 import Data.Char
+import Data.List (stripPrefix)
 
 
 -- |Capitalize a string
@@ -85,3 +86,19 @@ checkDuplicates [] = []
 checkDuplicates (a : as)
     | a `elem` as = a : checkDuplicates as
     | otherwise = checkDuplicates as
+
+fst3 :: (a, b, c) -> a
+fst3 (x, _, _) = x
+
+snd3 :: (a, b, c) -> b
+snd3 (_, x, _) = x
+
+trd3 :: (a, b, c) -> c
+trd3 (_, _, x) = x
+
+
+-- |If the second list contains the first list, it replaces that occurances with the third list
+replacePrefix :: Eq a => [a] -> [a] -> [a] -> [a]
+replacePrefix a b c = case stripPrefix a b of
+    Nothing -> b
+    Just bs -> c ++ bs

@@ -17,6 +17,7 @@ data TypeCheckError =
    | MultipleDeclarations String
    | TypeNameReserved String
    | UnsupportedExpressionInPathExpression String
+   | ListOperationNotOnList String
    deriving (Show)
 
 -- |Checks whether a data type is valid

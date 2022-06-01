@@ -75,6 +75,14 @@ defaultMap = [
   Func "count" [(BasicType "Any", OneBound 0)] (BasicType "Integer", Bounds (1, 1))
   ]
 
+-- |A list of the allowed list functions, the type of their expression and their return type
+listFunctionTypes :: Coercion -> Coercion -> [(String, Coercion, Coercion)]
+listFunctionTypes inp ex = [
+    -- The function given to a filter must be boolean and it can return anything
+    ("filter", MakeCoercion [MakeIdCoercion (BasicType "Boolean")] (MakeCardinalityIdCoercion (OneBound 0)), inp),
+    ("map", MakeCoercion [MakeIdCoercion (BasicType "Any")] (MakeCardinalityIdCoercion (OneBound 0)), ex)
+    ] 
+
 -- |Checks whether a function is valid (inputs, outputs are of valid type and all variables are defined) and adds it to the symbol table
 addFunction :: ([Type], [Symbol]) -> Function -> Either [TypeCheckError] [Symbol]
 addFunction (definedTypes, definedSymbols) (MakeFunction (MakeFunctionSignature name _ inps out) _ _) =
@@ -106,13 +114,33 @@ checkExpression defT symbolMap (Enum enum val) = case getType enum  defT of
     Right typ -> if val `elem` map attributeName (typeAttributes typ) 
         then Right $ ExplicitEnumCall enum val $ MakeCoercion [MakeIdCoercion typ] (MakeCardinalityIdCoercion (Bounds (1, 1)))  
         else Left $ UndefinedVariable val
-
+checkExpression defT symbolMap (ListOp op lst cond) =
+    case checkExpression defT symbolMap lst of
+        Left err -> Left err
+        Right checkedLst -> if toCardinality (cardinalityCoercion (returnCoercion checkedLst)) == Bounds(1, 1) 
+            then Left $ ListOperationNotOnList $ show lst
+            else let it = getNextItem symbolMap in
+                case checkExpression defT 
+                    (addVariables symbolMap [MakeTypeAttribute it (coercionType $ typeCoercion $ returnCoercion checkedLst) (toCardinality $ cardinalityCoercion $ returnCoercion checkedLst) Nothing]) 
+                    (replaceVar cond it) of
+                Left err -> Left err
+                Right condType -> case returnCoercion condType `coercionIncluded` head [snd3 x | x <- listOps, fst3 x == op] of
+                    Left err -> Left err
+                    Right checkedCond -> Right $ ExplicitListOp op checkedLst (changeCoercion condType checkedCond) (head [trd3 x | x <- listOps, fst3 x == op])
+                    where
+                        listOps = listFunctionTypes (returnCoercion checkedLst) (returnCoercion condType)
+checkExpression defT symbolMap (ListUnaryOp op lst) =
+    case checkExpression defT symbolMap lst of
+        Left err -> Left $ ErrorInsideFunction $ op ++ ": " ++ show err
+        Right checkedLst -> if toCardinality (cardinalityCoercion (returnCoercion checkedLst)) == Bounds(1, 1) 
+            then Left $ ListOperationNotOnList $ show lst
+            else Right $ ExplicitListUnaryOp op checkedLst (returnCoercion checkedLst)
 checkExpression _ _ (Keyword k) = Right $ ExplicitKeyword k
 checkExpression defT symbolMap (PathExpression ex1 (Variable b)) =
     case checkExpression defT symbolMap ex1 of
         Left err -> Left err
-        Right exp1 -> case findAttributeType b (getTypeAttributes defT type1) of
-            Left err -> Left $ UndefinedVariable $ show type1 ++ " -> " ++ b
+        Right exp1 -> case findAttributeTypeRec defT b type1 of
+            Left err -> Left $ UndefinedVariable $ show (typeName type1) ++ " -> " ++ b
             Right exp2 -> Right $ ExplicitPath exp1 exp2 (returnCoercion exp2)
             where
                 type1 = coercionType $ typeCoercion $ returnCoercion exp1
@@ -196,11 +224,11 @@ checkList1 defT symbs (ex : exps) typ =
 
 -- |Checks whether the function that is called is already defined with the same argument types
 checkFunctionCall :: [Symbol] -> String -> [Either TypeCheckError ExplicitExpression ] -> Either TypeCheckError ExplicitExpression
-checkFunctionCall [] fun args = error $ show args --Left $ UndefinedFunction $ "Undefined function: " ++ fun ++ " [" ++ show (rights args) ++ "]"
+checkFunctionCall [] fun args = Left $ UndefinedFunction $ "Undefined function: " ++ fun ++ " [" ++ show (rights args) ++ "]"
 checkFunctionCall ((Func n a r):symbolMap) name args
-    | not $ null $ lefts args = Left $ ErrorInsideFunction (name ++ ": " ++ show args ++ show (lefts args))
+    | not $ null $ lefts args = Left $ ErrorInsideFunction (name ++ ": " ++ show (lefts args))
     | name == n = if all isRight coerce then Right $ ExplicitFunction name (zip (rights args) (rights coerce)) (MakeCoercion [MakeIdCoercion (fst r)] (MakeCardinalityIdCoercion (snd r)))
-        else error $ show argCoerce
+        else checkFunctionCall symbolMap name args--Left $ UndefinedFunction $ "Undefined function: " ++ name ++ " [" ++ show (rights args) ++ "]"
     | otherwise = checkFunctionCall symbolMap name args
     where
         argCoerce = map returnCoercion (rights args)
@@ -222,6 +250,7 @@ typeIncluded (t1, c1) (t2, c2) =
                 Left err -> Left err
                 Right cardCoercion -> Right $ MakeCoercion typeCoercion cardCoercion
 
+-- | Checks whether the first coercion can be transformed into the second coercion
 coercionIncluded :: Coercion -> Coercion -> Either TypeCheckError Coercion
 coercionIncluded c1 c2 = (coercionType (typeCoercion c1), coercionCardinality [cardinalityCoercion c1]) `typeIncluded` (coercionType (typeCoercion c2), coercionCardinality [cardinalityCoercion c2])
 
@@ -250,12 +279,40 @@ findVarType x ((Var name typ crd):symbols)
     | otherwise = findVarType x symbols
 findVarType x (_:symbols) = findVarType x symbols
 
+-- |Look for a type attribute in a given type and its super types
+findAttributeTypeRec :: [Type] -> String -> Type -> Either TypeCheckError ExplicitExpression
+findAttributeTypeRec _ var (BasicType _) = Left $ UndefinedVariable var
+findAttributeTypeRec sTable var t = case findAttributeType var (getTypeAttributes sTable t) of
+    Left err -> case findAttributeTypeRec sTable var (superType t) of
+        Left err -> Left err
+        Right (ExplicitVariable n (MakeCoercion tc cc)) -> Right $ 
+            ExplicitVariable n 
+                (MakeCoercion (MakeSuperCoercion t (toType $ head tc) : tc) cc)
+        Right typ -> Right typ
+    Right typ -> Right typ
+
 -- |Find whether there is a attribute with the given name in the given type, and returns the attribute's type
 findAttributeType :: String -> [TypeAttribute] -> Either TypeCheckError ExplicitExpression
 findAttributeType var [] = Left $ UndefinedVariable var
 findAttributeType var (t : ts)
     | var == attributeName t = Right $ ExplicitVariable var (MakeCoercion [MakeIdCoercion $ attributeType t] (MakeCardinalityIdCoercion $ Model.Type.cardinality t))
     | otherwise = findAttributeType var ts
+
+-- |Removes the path expression from item in a list operation
+-- ex: person map [item -> firstname] => person map [person -> firsname] 
+replaceVar :: Expression -> String -> Expression
+replaceVar (Variable "item") var = Variable var
+replaceVar (PathExpression a b) var = PathExpression (replaceVar a var) b
+replaceVar (Parens e) var = Parens (replaceVar e var)
+replaceVar (ListUnaryOp o e) var = ListUnaryOp o (replaceVar e var)
+replaceVar (ListOp o e c) var = ListOp o (replaceVar e var) c
+replaceVar (Function f e) var = Function f [replaceVar ex var | ex <- e]
+replaceVar (PrefixExp o e) var = PrefixExp o (replaceVar e var)
+replaceVar (PostfixExp o e) var = PostfixExp o (replaceVar e var)
+replaceVar (InfixExp o e1 e2) var = InfixExp o (replaceVar e1 var) (replaceVar e2 var)
+replaceVar (IfSimple c e1) var = IfSimple (replaceVar c var) (replaceVar e1 var)
+replaceVar (IfElse c e1 e2) var = IfElse (replaceVar c var) (replaceVar e1 var) (replaceVar e2 var)
+replaceVar e _ = e
 
 -- |Checks whether the first argument is a subtype of the second argument
 isSubType :: Type -> Type -> Either TypeCheckError [TypeCoercion]
@@ -269,6 +326,11 @@ isSubType x y
     | otherwise = case isSubType (superType x) y of
         Left e -> Left e
         Right transforms -> Right $ MakeSuperCoercion x y : transforms
+
+getNextItem :: [Symbol] -> String
+getNextItem symbs
+    | Var "item" (BasicType "Any") (OneBound 0) `notElem` symbs = "item"
+    | otherwise = head ["list" ++ show x | x <- [1..], Var ("list" ++ show x) (BasicType "Any") (OneBound 0) `notElem` symbs]
 
 -- |Finds the type attributes from a type in the symbol table
 getTypeAttributes :: [Type] -> Type -> [TypeAttribute]

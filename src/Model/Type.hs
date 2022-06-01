@@ -1,4 +1,5 @@
 module Model.Type where
+
 -- |The representation of a Rosetta data type
 data Type = MakeType {
         typeName :: String,
@@ -39,6 +40,8 @@ data Expression = Variable String
     | Enum String String
     | Empty
     | Parens Expression
+    | ListUnaryOp String Expression
+    | ListOp String Expression Expression
     | List [Expression]
     | Function String [Expression]
     | PrefixExp String Expression
@@ -54,6 +57,8 @@ data ExplicitExpression = ExplicitEmpty
     | ExplicitList [ExplicitExpression]
     | ExplicitEnumCall {name :: String, val :: String, returnCoercion :: Coercion}
     | ExplicitKeyword String
+    | ExplicitListUnaryOp {op :: String, list :: ExplicitExpression, returnCoercion :: Coercion}
+    | ExplicitListOp {op :: String, list :: ExplicitExpression, arg :: ExplicitExpression, returnCoercion :: Coercion}
     | ExplicitParens {expression :: ExplicitExpression, returnCoercion :: Coercion}
     | ExplicitPath {super :: ExplicitExpression, sub :: ExplicitExpression, returnCoercion :: Coercion}
     | ExplicitFunction {name :: String, args :: [(ExplicitExpression, Coercion)], returnCoercion :: Coercion}
@@ -68,6 +73,8 @@ changeCoercion (ExplicitList e) _ = ExplicitList e
 changeCoercion (ExplicitKeyword n) _ = ExplicitKeyword n
 changeCoercion (ExplicitParens e _) c = ExplicitParens e c 
 changeCoercion (ExplicitPath s n _) c = ExplicitPath s n c
+changeCoercion (ExplicitListOp n o ar _) c = ExplicitListOp n o ar c
+changeCoercion (ExplicitListUnaryOp n o _) c = ExplicitListUnaryOp n o c
 changeCoercion (ExplicitFunction n args _) c = ExplicitFunction n args c 
 changeCoercion (ExplicitIfSimple cond block _) c = ExplicitIfSimple cond block c
 changeCoercion (ExplicitIfElse cond block block2 _) c = ExplicitIfElse cond block block2 c    
@@ -84,6 +91,8 @@ instance Show ExplicitExpression where
     show (ExplicitIfSimple cond block coer) = show $ "if" ++ show cond ++ " then " ++ show block
     show (ExplicitIfElse cond block1 block2 coer) = show $ "if" ++ show cond ++ " then " ++ show block1 ++ " else " ++ show block2
     show ExplicitEmpty = show "Empty"
+    show (ExplicitListOp lst op ar coer) = show $ show lst ++ " " ++ show op ++ " " ++ show ar
+    show (ExplicitListUnaryOp lst op coer) = show $ show lst ++ " " ++ show op
     show (ExplicitEnumCall n val coer) = show $ "Enumcall: " ++ n ++ "->" ++ val
 
 data TypeCoercion =
@@ -136,6 +145,14 @@ smallestBound (OneBound x) (Bounds (y, _)) = smallestBound (OneBound x) (OneBoun
 smallestBound (Bounds (x, _)) (OneBound y) = smallestBound (OneBound x) (OneBound y)
 smallestBound (Bounds (x1, x2)) (Bounds (y1, y2)) = Bounds (min x1 y1, max x2 y2)
 
+lowerBound :: Cardinality -> Integer
+lowerBound (Bounds (x, _)) = x
+lowerBound (OneBound x) = x
+
+upperBound :: Cardinality -> Integer
+upperBound (Bounds (_, x)) = x
+upperBound (OneBound _) = toInteger (maxBound :: Int)
+
 -- |A function used to add two cardinalities    
 addBounds :: Cardinality -> Cardinality -> Cardinality
 addBounds (Bounds (x1, x2)) (Bounds (y1, y2)) = Bounds (x1 + y1, x2 + y2)
@@ -172,3 +189,6 @@ coercionCardinality (x:rst) = coercionCardinality rst
 
 createCoercion :: (Type, Cardinality) -> Coercion
 createCoercion (t, c) = MakeCoercion [MakeIdCoercion t] (MakeCardinalityIdCoercion c)
+
+anyListCoercion :: Coercion
+anyListCoercion = MakeCoercion [MakeIdCoercion (BasicType "Any")] (MakeCardinalityIdCoercion (OneBound 0))
