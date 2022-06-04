@@ -200,7 +200,7 @@ powerParser =
 boolOpParser :: Parser Expression
 boolOpParser =
     do
-        p <- pathExpressionParser
+        p <- postfixParser
         op <- lexeme $ observing (string "or" <|> string "and")
         case op of
             Left _ -> return p
@@ -210,11 +210,15 @@ boolOpParser =
 postfixParser :: Parser Expression
 postfixParser =
     do
-        t <- listUnaryOpParser
+        t <- pathExpressionParser
         op <- lexeme $ observing $ choice $ fmap (try . string . Text.pack) postfixFunctions
         case op of
             Left _ -> return t
             Right o -> return $ PostfixExp (Text.unpack o) t
+
+-- |The list of existing postfix Rosetta functions
+postfixFunctions :: [String]
+postfixFunctions = ["exists", "is absent", "count", "only-element", "single exists", "multiple exists"]
 
 
 listUnaryOperations :: [String]
@@ -277,15 +281,11 @@ nestedListOp ex =
 pathExpressionParser :: Parser Expression
 pathExpressionParser =
     do
-        var <- postfixParser
+        var <- listUnaryOpParser
         op <- lexeme $ observing $ string "->"
         case op of
             Left _ -> return var
             Right _ -> pathExpressionParser >>= \ex -> return $ reverseExpression $ PathExpression var ex
-
--- |The list of existing postfix Rosetta functions
-postfixFunctions :: [String]
-postfixFunctions = ["exists", "is absent", "count", "only-element", "single exists", "multiple exists"]
 
 --------------------------------------------
 -- Auxiliary  ------------------------------
@@ -297,7 +297,7 @@ reverseExpression (InfixExp op t1 (InfixExp op2 t2 e))
     | precedence op == precedence op2 = InfixExp op2 (reverseExpression (InfixExp op t1 t2)) e
     | otherwise = InfixExp op t1 (InfixExp op2 t2 e)
 reverseExpression (PathExpression e1 (PathExpression e2 e3)) = PathExpression (reverseExpression (PathExpression e1 e2)) e3
-reverseExpression (PathExpression e1 (ListOp op ex2 cond)) = ListOp op cond (reverseExpression (PathExpression e1 ex2))
+reverseExpression (PathExpression e1 (ListOp op ex2 cond)) = ListOp op (reverseExpression (PathExpression e1 ex2)) cond
 reverseExpression (PathExpression e1 (ListUnaryOp op ex2)) = ListUnaryOp op (reverseExpression (PathExpression e1 ex2))
 reverseExpression (ListOp op1 (ListOp op2 ex2 con2) con1) = ListOp op2 (reverseExpression (ListOp op1 ex2 con1)) con2
 reverseExpression (ListOp op1 (ListUnaryOp op2 ex2) con1) = ListUnaryOp op2 (reverseExpression (ListOp op1 ex2 con1))

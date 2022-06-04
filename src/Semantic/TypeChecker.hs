@@ -18,6 +18,7 @@ data TypeCheckError =
    | TypeNameReserved String
    | UnsupportedExpressionInPathExpression String
    | ListOperationNotOnList String
+   | PathExpressionOnList String
    deriving (Show)
 
 -- |Checks whether a data type is valid

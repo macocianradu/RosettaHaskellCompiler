@@ -42,10 +42,10 @@ checkAssignment defT symbs ((assign, ex): assigns) =
 
 addAliases :: [Type] -> [Symbol] -> [(String, Expression)] -> Either TypeCheckError ([Symbol], [(String, ExplicitExpression)])
 addAliases definedTypes symbolMap [] = Right (symbolMap, [])
-addAliases definedTypes symbolMap (alias : aliases) = 
+addAliases definedTypes symbolMap (alias : aliases) =
     case checkExpression definedTypes symbolMap (snd alias) of
         Left err -> Left err
         Right ex -> case add of
             Left err -> Left err
             Right added -> Right (fst added, (fst alias, ex) : snd added)
-            where add = addAliases definedTypes (addVariables symbolMap [MakeTypeAttribute (fst alias) (coercionType $ typeCoercion $ returnCoercion ex) (toCardinality $ cardinalityCoercion $ returnCoercion ex) Nothing]) aliases
+            where add = addAliases definedTypes (addVariables symbolMap [MakeTypeAttribute (fst alias) (typeFromExpression ex) (toCardinality $ cardinalityCoercion $ returnCoercion ex) Nothing]) aliases

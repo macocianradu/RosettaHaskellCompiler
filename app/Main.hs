@@ -29,8 +29,8 @@ import Parser.Expression (expressionParser)
 -- :l resources/Generated/ContractDSL.hs resources/Generated/ImportsTypes.hs resources/Generated/ImportsEnums.hs
 -- :set args resources/Rosetta/Contracts/contractDSL.rosetta
 
--- :set args resources/Rosetta/test-all.rosetta
--- :l resources/Generated/testAll.hs resources/Generated/testPeriod.hs
+-- :l resources/Generated/ContractDSL.hs resources/Generated/ImportsTypes.hs
+-- :set args resources/Rosetta/Try/contractDSL.rosetta
 
 -- |Reads a rosetta string from the first input argument and writes a haskell output to the file given as a second argument
 main :: IO ()

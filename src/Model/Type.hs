@@ -64,6 +64,7 @@ data ExplicitExpression = ExplicitEmpty
     | ExplicitFunction {name :: String, args :: [(ExplicitExpression, Coercion)], returnCoercion :: Coercion}
     | ExplicitIfSimple {cond :: (ExplicitExpression, Coercion), block1 :: (ExplicitExpression, Coercion), returnCoercion :: Coercion}
     | ExplicitIfElse {cond :: (ExplicitExpression, Coercion), block1 :: (ExplicitExpression, Coercion), block2 :: (ExplicitExpression, Coercion), returnCoercion :: Coercion}
+    deriving (Eq)
 
 changeCoercion :: ExplicitExpression -> Coercion -> ExplicitExpression
 changeCoercion ExplicitEmpty _ = ExplicitEmpty
@@ -99,7 +100,7 @@ data TypeCoercion =
     MakeIdCoercion {toType :: Type}
     | MakeSuperCoercion {fromType :: Type, toType :: Type}
     | MakeTypeCoercion {fromType :: Type, toType :: Type, transformType :: String}
-    deriving (Show)
+    deriving (Eq, Show)
 
 data CardinalityCoercion =
     MakeCardinalityIdCoercion {toCardinality :: Cardinality}
@@ -109,11 +110,10 @@ data CardinalityCoercion =
     | MakeMaybe2ListCoercion {fromCardinality :: Cardinality, toCardinality :: Cardinality}
     | MakeObject2MaybeCoercion {fromCardinality :: Cardinality, toCardinality :: Cardinality}
     | MakeObject2ListCoercion {fromCardinality :: Cardinality, toCardinality :: Cardinality}
-    deriving (Show)
+    deriving (Eq, Show)
 
 -- |Used to handle polymorphism in Rosetta
-data Coercion = MakeCoercion {typeCoercion :: [TypeCoercion], cardinalityCoercion :: CardinalityCoercion} deriving(Show)
-
+data Coercion = MakeCoercion {typeCoercion :: [TypeCoercion], cardinalityCoercion :: CardinalityCoercion} deriving(Eq, Show)
 
 -- |The representation of an attribute of a data type
 data TypeAttribute = MakeTypeAttribute {
@@ -192,3 +192,6 @@ createCoercion (t, c) = MakeCoercion [MakeIdCoercion t] (MakeCardinalityIdCoerci
 
 anyListCoercion :: Coercion
 anyListCoercion = MakeCoercion [MakeIdCoercion (BasicType "Any")] (MakeCardinalityIdCoercion (OneBound 0))
+
+typeFromExpression :: ExplicitExpression -> Type
+typeFromExpression = coercionType . typeCoercion . returnCoercion

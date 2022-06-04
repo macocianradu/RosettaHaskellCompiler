@@ -33,6 +33,7 @@ printAttributes :: String -> [Condition] -> [TypeAttribute] -> Doc a
 printAttributes objName conditions ats
     | MakeCondition Nothing (Keyword "one-of") `elem` conditions = vcat [nest 4 $ vcat $ 
         zipWith (<>) ("" : repeat "| ") (map (printSumType objName) (increaseBound ats)) ++ map printCondition conditions, " deriving (Eq)"]
+    | null ats = emptyDoc
     | length ats < 2 = vcat [nest 4 $ vcat $ 
         zipWith (<>) ("" : repeat "| ") (map (printSumType objName) ats) ++ map printCondition conditions, " deriving (Eq)", printDefault objName (objName ++ capitalize (attributeName (head ats))) ats]
     | otherwise = vcat [nest 4 $ vcat ("Make" <> pretty objName <+> "{" : 

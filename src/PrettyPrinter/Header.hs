@@ -14,11 +14,15 @@ printHeader (MakeHeader name (Just description) _ imports) =
     show $ vcat ["module" <+> pretty (removePeriods name) <+> "where",
         enclose "{-" "-}" (pretty description), 
         emptyDoc,
+        "import" <+> "Data.List",
+        "import" <+> "Data.Maybe",
         vcat (map printImport imports),
         emptyDoc]
 printHeader (MakeHeader name Nothing _ imports) =
     show $ vcat ["module" <+> pretty (removePeriods name) <+> "where",
         emptyDoc,
+        "import" <+> "Data.List",
+        "import" <+> "Data.Maybe",
         vcat (map printImport imports),
         emptyDoc] 
 

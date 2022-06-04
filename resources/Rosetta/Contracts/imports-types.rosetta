@@ -63,7 +63,7 @@ type AdjustableOrRelativeDate:
 	adjustableDate	AdjustableDate (0..1)
 
 type AdjustableDate:
-	unadjastableDate string (0..1) //date
+	unadjustedDate string (0..1) //date
 	
 type ForeignExchange:
 	exchangedCurrency1	Cashflow	(1..1)	

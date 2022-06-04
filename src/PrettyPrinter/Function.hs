@@ -40,7 +40,7 @@ printFunction f = show $ vcat [printFunctionSignature (sign f), printFunctionBod
 
 -- |Converts the body of a Function into a haskell valid Doc
 printFunctionBody :: ExplicitFunction -> Doc a
-printFunctionBody (MakeExplicitFunction (MakeFunctionSignature name _ inp out) alias ex) =
+printFunctionBody (MakeExplicitFunction (MakeFunctionSignature name _ inp out) alias ex) = 
     pretty name <+> printVariableNames inp <+> "=" <+> 
     nest 4 (vsep (map printAlias alias ++
     [printAssignmentTree (head $ mergeAssignmentTrees [convertToAssignmentTree (fst exp) (AssignmentLeaf (snd exp)) | exp <- ex])]))

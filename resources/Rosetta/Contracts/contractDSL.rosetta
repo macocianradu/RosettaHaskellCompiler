@@ -259,7 +259,7 @@ func ResolveQuantity:
 
   assign-output resolvedQuantity -> unitOfAmount:
     resolvedValue -> unitOfAmount
-
+/*
 func CashflowPayoutToContract:
   inputs:
     cashflow Cashflow (1..1)
@@ -288,13 +288,13 @@ func CashflowPayoutToContract:
     PayoutParty1
     ( cashflow
     , MkScale
-      ( Konst (quantity -> multiplier)
+      ( Konst (quantity -> multiplier only-element)
       , if fixingDate exists then
           MkGet
           ( MkTruncate
             ( fixingDate
             , MkScale
-              ( ExchangeRate(quantity -> unitOfAmount -> currency, settlementTerms -> settlementCurrency)
+              ( ExchangeRateFunc(quantity -> unitOfAmount, settlementTerms -> settlementCurrency)
               , MkGet
                 ( MkTruncate
                   ( settlementTerms -> settlementDate -> valueDate

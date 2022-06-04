@@ -24,3 +24,6 @@ cabal.project.local~
 .idea/
 /resources/Generated/
 .vscode/
+/resources/Rosetta/Try/
+/resources/fxspot.json
+/resources/european contract.json
