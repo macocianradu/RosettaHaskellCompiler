@@ -115,6 +115,7 @@ data CardinalityCoercion =
     | MakeObject2MaybeCoercion {fromCardinality :: Cardinality, toCardinality :: Cardinality}
     | MakeObject2ListCoercion {fromCardinality :: Cardinality, toCardinality :: Cardinality}
     | MakeOneOfCoercion {toCardinality :: Cardinality}
+    | MakeMaybe2ObjectCoercion {toCardinality :: Cardinality}
     deriving (Eq, Show)
 
 -- |Used to handle polymorphism in Rosetta

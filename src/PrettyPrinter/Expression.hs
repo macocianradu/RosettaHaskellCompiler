@@ -49,9 +49,9 @@ printExpression (ExplicitFunction "all <>" args returnCoerce) = printCoercion (s
 printExpression (ExplicitFunction "all =" args returnCoerce) = "all (Eq)" <+> printCoercion (snd $ head $ tail args) (printExpression (fst $ head $ tail args)) <+> printCoercion (snd $ head args) (printExpression (fst $ head args))
 printExpression (ExplicitFunction "and" args returnCoerce) = printCoercion (snd $ head args) (printExpression (fst $ head args)) <+> "&&" <+> printCoercion (snd $ head $ tail args) (printExpression (fst $ head $ tail args))
 printExpression (ExplicitFunction "or" args returnCoerce) = printCoercion (snd $ head args) (printExpression (fst $ head args)) <+> "||" <+> printCoercion (snd $ head $ tail args) (printExpression (fst $ head $ tail args))
-printExpression (ExplicitFunction name args returnCoerce) =
+printExpression (ExplicitFunction name args returnCoerce) = 
     if null printedArgs then pretty (uncapitalize name)
-    else  pretty (uncapitalize name) <+> printCoercion returnCoerce (hsep (map (enclose "(" ")") printedArgs))
+    else  pretty (uncapitalize name) <+> (hsep (map (enclose "(" ")") printedArgs))
     where printedArgs = zipWith printCoercion [c | (e,c) <- args] [printExpression e | (e, c) <- args]
 printExpression (ExplicitIfSimple cond thenBlock returnCoercion) = 
     printIf
@@ -101,7 +101,8 @@ printCardinalityCoercion (MakeListCardinalityCoercion _ _) d = d
 printCardinalityCoercion (MakeNothing2MaybeCoercion _ _) d = "Nothing"
 printCardinalityCoercion (MakeNothing2ListCoercion _ _) d = "[]"
 printCardinalityCoercion (MakeMaybe2ListCoercion _ _) d = "maybeToList" <+> enclose "(" ")" d
-printCardinalityCoercion (MakeObject2MaybeCoercion _ _) d = "fromJust" <+> enclose "(" ")" d
+printCardinalityCoercion (MakeObject2MaybeCoercion _ _) d = "Just" <+> enclose "(" ")" d
+printCardinalityCoercion (MakeMaybe2ObjectCoercion _) d = "fromJust" <+> enclose "(" ")" d
 printCardinalityCoercion (MakeObject2ListCoercion _ _) d = "[" <> d <> "]"
 printCardinalityCoercion (MakeOneOfCoercion _) d = d
 

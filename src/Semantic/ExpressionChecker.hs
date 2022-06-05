@@ -166,13 +166,18 @@ checkExpression defT symbolMap (PathExpression ex1 (Variable b)) =
         Left err -> Left err
         Right exp1 -> case findAttributeTypeRec defT b type1 of
             Left err -> Left $ UndefinedVariable $ show (typeName type1) ++ " -> " ++ b
-            Right exp2 -> case Bounds(1, 1) `cardinalityIncluded` crd1 of
+            Right exp2 -> case cardC of
                     Left err -> Left $ PathExpressionOnList (show ex1) 
                     Right c -> if MakeCondition Nothing (Keyword "one-of") `elem` conditions (typeFromExpression exp1) 
                         then Right $ ExplicitPath (changeCoercion exp1 ((returnCoercion exp1){cardinalityCoercion = c})) (changeCoercion exp2 exp2C) exp2C
                         else Right $ ExplicitPath (changeCoercion exp1 ((returnCoercion exp1){cardinalityCoercion = c})) exp2 (returnCoercion exp2)
-                        where
-                            exp2C = MakeCoercion (typeCoercion $ returnCoercion exp2) (MakeOneOfCoercion (Bounds (1,1)))
+                    where
+                        exp2C = MakeCoercion (typeCoercion $ returnCoercion exp2) (MakeOneOfCoercion (Bounds (1,1)))
+                        cardC = case crd1 of
+                            Bounds (1, 1) -> Right $ MakeCardinalityIdCoercion crd1
+                            Bounds (0, 1) -> Right $ MakeMaybe2ObjectCoercion (Bounds (1, 1))
+                            _ -> Left $ PathExpressionOnList (show ex1)
+
             where
                 type1 = typeFromExpression exp1
                 crd1 = toCardinality $ cardinalityCoercion $ returnCoercion exp1
