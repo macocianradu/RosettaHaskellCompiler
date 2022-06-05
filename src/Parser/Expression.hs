@@ -247,9 +247,17 @@ listOpParser =
             Left _ -> return lst
             Right o ->                 
                 do
-                    con <- between (lexeme $ char '[') (lexeme $ char ']') expressionParser 
-                    exp <- nestedPostOp lst
-                    return $ reverseExpression $ ListOp (Text.unpack o) exp con
+                    case o of
+                        "reduce" -> do
+                            v1 <- lexeme camelNameParser
+                            v2 <- lexeme camelNameParser
+                            con <-  between (lexeme $ char '[') (lexeme $ char ']') expressionParser
+                            exp <- nestedPostOp lst
+                            return $ reverseExpression $ Reduce (Text.unpack o) exp v1 v2 con
+                        _ -> do 
+                            con <- between (lexeme $ char '[') (lexeme $ char ']') expressionParser 
+                            exp <- nestedPostOp lst
+                            return $ reverseExpression $ ListOp (Text.unpack o) exp con
 
 -- |Parses nested post operations on lists                   
 nestedPostOp :: Expression -> Parser Expression
@@ -271,10 +279,17 @@ nestedListOp ex =
         case op of
             Left er -> return ex
             Right o -> 
-                do
-                    con <- between (lexeme $ char '[') (lexeme $ char ']') expressionParser 
-                    exp <- nestedPostOp ex
-                    return $ reverseExpression $ ListOp (Text.unpack o) exp con
+                case o of
+                    "reduce" -> do
+                        v1 <- lexeme camelNameParser
+                        v2 <- lexeme camelNameParser
+                        con <-  between (lexeme $ char '[') (lexeme $ char ']') expressionParser
+                        exp <- nestedPostOp ex
+                        return $ reverseExpression $ Reduce (Text.unpack o) exp v1 v2 con
+                    _ -> do
+                        con <- between (lexeme $ char '[') (lexeme $ char ']') expressionParser 
+                        exp <- nestedPostOp ex
+                        return $ reverseExpression $ ListOp (Text.unpack o) exp con
 
 
 -- |Parses a path expression (a -> b) in Rosetta into an Expression
@@ -299,9 +314,15 @@ reverseExpression (InfixExp op t1 (InfixExp op2 t2 e))
 reverseExpression (PathExpression e1 (PathExpression e2 e3)) = PathExpression (reverseExpression (PathExpression e1 e2)) e3
 reverseExpression (PathExpression e1 (ListOp op ex2 cond)) = ListOp op (reverseExpression (PathExpression e1 ex2)) cond
 reverseExpression (PathExpression e1 (ListUnaryOp op ex2)) = ListUnaryOp op (reverseExpression (PathExpression e1 ex2))
+reverseExpression (PathExpression e1 (Reduce op ex2 v1 v2 cond)) = Reduce op (reverseExpression (PathExpression e1 ex2)) v1 v2 cond
 reverseExpression (ListOp op1 (ListOp op2 ex2 con2) con1) = ListOp op2 (reverseExpression (ListOp op1 ex2 con1)) con2
+reverseExpression (ListOp op1 (Reduce op2 ex2 v1 v2 con2) con1) = Reduce op2 (reverseExpression (ListOp op1 ex2 con1)) v1 v2 con2
 reverseExpression (ListOp op1 (ListUnaryOp op2 ex2) con1) = ListUnaryOp op2 (reverseExpression (ListOp op1 ex2 con1))
+reverseExpression (Reduce op1 (Reduce op2 ex2 u1 u2 con2) v1 v2 con1) = Reduce op2 (reverseExpression (Reduce op1 ex2 v1 v2 con1)) u1 u2 con2
+reverseExpression (Reduce op1 (ListOp op2 ex2 con2) v1 v2 con1) = ListOp op2 (reverseExpression (Reduce op1 ex2 v1 v2 con1)) con2
+reverseExpression (Reduce op1 (ListUnaryOp op2 ex2) v1 v2 con1) = ListUnaryOp op2 (reverseExpression (Reduce op1 ex2 v1 v2 con1))
 reverseExpression (ListUnaryOp op1 (ListOp op2 ex2 con2)) = ListOp op2 (reverseExpression (ListUnaryOp op1 ex2)) con2
+reverseExpression (ListUnaryOp op1 (Reduce op2 ex2 v1 v2 con2)) = Reduce op2 (reverseExpression (ListUnaryOp op1 ex2)) v1 v2 con2
 reverseExpression (ListUnaryOp op1 (ListUnaryOp op2 ex2)) = ListUnaryOp op2 (reverseExpression (ListUnaryOp op1 ex2))
 reverseExpression e = e
 

@@ -19,15 +19,18 @@ printExpression (ExplicitKeyword k) = pretty k
 printExpression (ExplicitEnumCall name val coer) = printCoercion coer $ pretty name <> pretty val
 printExpression (ExplicitParens ex c) = "(" <> printExpression ex <> ")"
 printExpression (ExplicitList ex) = Prettyprinter.list [printExpression x | x <- ex]
+printExpression (ExplicitReduce op lst v1 v2 cond coer) = "foldl1" <+> enclose "(" ")" ("\\" <+> pretty v1 <+> pretty v2 <+> "->" <+> printExpression cond) <+> enclose "(" ")" (printExpression lst)  
 printExpression (ExplicitListOp "map" lst cond coer) = enclose "[" "]" (printExpression cond <+> "|" <+> "x" <+> "<-" <+> printExpression lst)
 printExpression (ExplicitListOp "filter" lst cond coer) = enclose "[" "]" ("x" <+> "|" <+> "x" <+> "<-" <+> printExpression lst <> "," <+>  printExpression cond)
 printExpression (ExplicitListOp op lst cond coer) = pretty op <+> nest 4 (vsep [emptyDoc, enclose "(" ")" (printExpression cond), enclose "(" ")" (printExpression lst)])
-printExpression (ExplicitListUnaryOp "only-element" lst coer) = "head" <+> enclose "(" ")" (nest 4 (line <> printExpression lst))
+printExpression (ExplicitListUnaryOp "only-element" lst coer)
+    | toCardinality (cardinalityCoercion (returnCoercion lst)) == Bounds (0, 1) = "fromJust" <+> enclose "(" ")" (nest 4 (line <> printExpression lst))
+    | otherwise = "head" <+> enclose "(" ")" (nest 4 (line <> printExpression lst))
 printExpression (ExplicitListUnaryOp "flatten" lst coer) = "concat" <+> enclose "(" ")" (nest 4 (line <> printExpression lst))
 printExpression (ExplicitListUnaryOp op lst coer) = pretty op <+> nest 4 (printExpression lst)
-printExpression (ExplicitPath ex1 (ExplicitVariable var ret) returnCoerce)=
-        pretty (uncapitalize $ typeName $ typeFromExpression ex1) <> pretty (capitalize var) <+> nest 4 (line <>
-        enclose "(" ")" (printCoercion (returnCoercion ex1) (printExpression (ex1{returnCoercion = MakeCoercion [MakeIdCoercion (typeFromExpression ex1)] (MakeCardinalityIdCoercion (Bounds (1,1)))}))))
+printExpression (ExplicitPath ex1 (ExplicitVariable var ret) returnCoerce) =  
+    pretty (uncapitalize $ typeName $ typeFromExpression ex1) <> pretty (capitalize var) <+> nest 4 (line <>
+    enclose "(" ")" (printCoercion (returnCoercion ex1) (printExpression (ex1{returnCoercion = MakeCoercion [MakeIdCoercion (typeFromExpression ex1)] (MakeCardinalityIdCoercion (Bounds (1,1)))}))))
 printExpression ExplicitPath {} = error "This should never happen. Path Expression 2nd argument is not variable"
 printExpression (ExplicitFunction "exists" args returnCoerce) 
     | toCardinality (cardinalityCoercion (snd (head args))) == Bounds (0, 1) = printCoercion returnCoerce "isJust" <+> enclose "(" ")" (printCoercion (snd $ head args) (printExpression (fst $ head args)))
@@ -88,7 +91,9 @@ printIf cond thenBlock elseBlock = "if" <+> cond <+> nest 4 ( line <>
 -- |Converts a coercion into a haskell string
 printCoercion :: Coercion -> Doc a -> Doc a
 printCoercion (MakeCoercion [] crd) d = printCardinalityCoercion crd d
-printCoercion (MakeCoercion (t: ts) crd) d = printCoercion (MakeCoercion ts crd) d <> printTypeCoercion t 
+printCoercion (MakeCoercion (MakeIdCoercion _: ts) crd) d = printCoercion (MakeCoercion ts crd) d
+printCoercion (MakeCoercion (MakeSuperCoercion _ _: ts) crd) d = d <> "Super" <+> printCoercion (MakeCoercion ts crd) d
+printCoercion (MakeCoercion (MakeTypeCoercion {}: ts) crd) d = printCoercion (MakeCoercion ts crd) d
 
 printCardinalityCoercion :: CardinalityCoercion -> Doc a -> Doc a
 printCardinalityCoercion (MakeCardinalityIdCoercion _) d = d
@@ -98,11 +103,12 @@ printCardinalityCoercion (MakeNothing2ListCoercion _ _) d = "[]"
 printCardinalityCoercion (MakeMaybe2ListCoercion _ _) d = "maybeToList" <+> enclose "(" ")" d
 printCardinalityCoercion (MakeObject2MaybeCoercion _ _) d = "fromJust" <+> enclose "(" ")" d
 printCardinalityCoercion (MakeObject2ListCoercion _ _) d = "[" <> d <> "]"
+printCardinalityCoercion (MakeOneOfCoercion _) d = d
 
-printTypeCoercion :: TypeCoercion -> Doc a
-printTypeCoercion (MakeIdCoercion _) = emptyDoc
-printTypeCoercion (MakeSuperCoercion _ _) = "Super"
-printTypeCoercion (MakeTypeCoercion _ _ t) = pretty t
+printTypeCoercion :: TypeCoercion -> Doc a -> Doc a
+printTypeCoercion (MakeIdCoercion _) v = emptyDoc
+printTypeCoercion (MakeSuperCoercion _ _) v = v <> "Super"
+printTypeCoercion (MakeTypeCoercion _ _ t) v = pretty t
 
 -- |Converts a list of type attributes to a Doc with a list of variable names
 printVariableNames :: [TypeAttribute] -> Doc a

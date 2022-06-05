@@ -42,6 +42,7 @@ data Expression = Variable String
     | Parens Expression
     | ListUnaryOp String Expression
     | ListOp String Expression Expression
+    | Reduce String Expression String String Expression 
     | List [Expression]
     | Function String [Expression]
     | PrefixExp String Expression
@@ -60,6 +61,7 @@ data ExplicitExpression = ExplicitEmpty
     | ExplicitListUnaryOp {op :: String, list :: ExplicitExpression, returnCoercion :: Coercion}
     | ExplicitListOp {op :: String, list :: ExplicitExpression, arg :: ExplicitExpression, returnCoercion :: Coercion}
     | ExplicitParens {expression :: ExplicitExpression, returnCoercion :: Coercion}
+    | ExplicitReduce {op :: String, list :: ExplicitExpression, var1 :: String, var2 :: String, arg :: ExplicitExpression, returnCoercion :: Coercion}
     | ExplicitPath {super :: ExplicitExpression, sub :: ExplicitExpression, returnCoercion :: Coercion}
     | ExplicitFunction {name :: String, args :: [(ExplicitExpression, Coercion)], returnCoercion :: Coercion}
     | ExplicitIfSimple {cond :: (ExplicitExpression, Coercion), block1 :: (ExplicitExpression, Coercion), returnCoercion :: Coercion}
@@ -75,6 +77,7 @@ changeCoercion (ExplicitKeyword n) _ = ExplicitKeyword n
 changeCoercion (ExplicitParens e _) c = ExplicitParens e c 
 changeCoercion (ExplicitPath s n _) c = ExplicitPath s n c
 changeCoercion (ExplicitListOp n o ar _) c = ExplicitListOp n o ar c
+changeCoercion (ExplicitReduce n o v1 v2 ar _) c = ExplicitReduce n o v1 v2 ar c
 changeCoercion (ExplicitListUnaryOp n o _) c = ExplicitListUnaryOp n o c
 changeCoercion (ExplicitFunction n args _) c = ExplicitFunction n args c 
 changeCoercion (ExplicitIfSimple cond block _) c = ExplicitIfSimple cond block c
@@ -93,6 +96,7 @@ instance Show ExplicitExpression where
     show (ExplicitIfElse cond block1 block2 coer) = show $ "if" ++ show cond ++ " then " ++ show block1 ++ " else " ++ show block2
     show ExplicitEmpty = show "Empty"
     show (ExplicitListOp lst op ar coer) = show $ show lst ++ " " ++ show op ++ " " ++ show ar
+    show (ExplicitReduce lst op v1 v2 ar coer) = show $ show lst ++ " " ++ show op ++ " " ++ show ar
     show (ExplicitListUnaryOp lst op coer) = show $ show lst ++ " " ++ show op
     show (ExplicitEnumCall n val coer) = show $ "Enumcall: " ++ n ++ "->" ++ val
 
@@ -110,6 +114,7 @@ data CardinalityCoercion =
     | MakeMaybe2ListCoercion {fromCardinality :: Cardinality, toCardinality :: Cardinality}
     | MakeObject2MaybeCoercion {fromCardinality :: Cardinality, toCardinality :: Cardinality}
     | MakeObject2ListCoercion {fromCardinality :: Cardinality, toCardinality :: Cardinality}
+    | MakeOneOfCoercion {toCardinality :: Cardinality}
     deriving (Eq, Show)
 
 -- |Used to handle polymorphism in Rosetta

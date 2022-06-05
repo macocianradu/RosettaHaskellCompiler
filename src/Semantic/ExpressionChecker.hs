@@ -121,12 +121,28 @@ checkExpression defT symbolMap (Enum enum val) = case getType enum  defT of
     Right typ -> if val `elem` map attributeName (typeAttributes typ) 
         then Right $ ExplicitEnumCall enum val $ MakeCoercion [MakeIdCoercion typ] (MakeCardinalityIdCoercion (Bounds (1, 1)))  
         else Left $ UndefinedVariable val
+checkExpression defT symbolMap (Reduce op lst v1 v2 cond) =
+    case checkExpression defT symbolMap lst of
+        Left err -> Left $ ErrorInsideFunction $ op ++ ": " ++ show err
+        Right checkedLst -> let it = getNextItem symbolMap in
+            case checkExpression defT 
+                (addVariables symbolMap [MakeTypeAttribute it (typeFromExpression checkedLst) (Bounds (1,1)) Nothing, 
+                                                                MakeTypeAttribute v1 (typeFromExpression checkedLst) (Bounds (1,1)) Nothing,
+                                                                MakeTypeAttribute v2 (typeFromExpression checkedLst) (Bounds (1,1)) Nothing])
+                (replaceVar cond it) of
+                    Left err -> Left $ ErrorInsideFunction $ op ++ ": " ++ show err
+                    Right condType -> case returnCoercion condType `coercionIncluded` head [snd3 x | x <- listOps, fst3 x == op] of
+                        Left err -> Left $ ErrorInsideFunction $ op ++ ": " ++ show err
+                        Right checkedCond -> Right $ ExplicitReduce op checkedLst v1 v2 (changeCoercion condType checkedCond) (head [trd3 x | x <- listOps, fst3 x == op])
+                        where
+                            listOps = listFunctionTypes (returnCoercion checkedLst) (returnCoercion condType)
+
 checkExpression defT symbolMap (ListOp op lst cond) =
     case checkExpression defT symbolMap lst of
         Left err -> Left $ ErrorInsideFunction $ op ++ ": " ++ show err
-        Right checkedLst -> if toCardinality (cardinalityCoercion (returnCoercion checkedLst)) == Bounds(1, 1) 
+        Right checkedLst -> {-if toCardinality (cardinalityCoercion (returnCoercion checkedLst)) == Bounds(1, 1) 
             then Left $ ListOperationNotOnList $ show op ++ ": " ++ show lst
-            else let it = getNextItem symbolMap in
+            else -}let it = getNextItem symbolMap in
                 case checkExpression defT 
                     (addVariables symbolMap [MakeTypeAttribute it (typeFromExpression checkedLst) (Bounds (1,1)) Nothing]) 
                     (replaceVar cond it) of
@@ -139,9 +155,9 @@ checkExpression defT symbolMap (ListOp op lst cond) =
 checkExpression defT symbolMap (ListUnaryOp op lst) =
     case checkExpression defT symbolMap lst of
         Left err -> Left $ ErrorInsideFunction $ op ++ ": " ++ show err
-        Right checkedLst -> if toCardinality (cardinalityCoercion (returnCoercion checkedLst)) == Bounds(1, 1) 
+        Right checkedLst -> {-if toCardinality (cardinalityCoercion (returnCoercion checkedLst)) == Bounds(1, 1) 
             then Left $ ListOperationNotOnList $ show op ++ ": " ++ show lst
-            else if op `elem` map fst (listUnaryFunctionTypes (returnCoercion checkedLst))
+            else -}if op `elem` map fst (listUnaryFunctionTypes (returnCoercion checkedLst))
                 then Right $ ExplicitListUnaryOp op checkedLst (head [snd x | x <- listUnaryFunctionTypes (returnCoercion checkedLst), fst x == op])
                 else Left $ UndefinedFunction op
 checkExpression _ _ (Keyword k) = Right $ ExplicitKeyword k
@@ -152,7 +168,11 @@ checkExpression defT symbolMap (PathExpression ex1 (Variable b)) =
             Left err -> Left $ UndefinedVariable $ show (typeName type1) ++ " -> " ++ b
             Right exp2 -> case Bounds(1, 1) `cardinalityIncluded` crd1 of
                     Left err -> Left $ PathExpressionOnList (show ex1) 
-                    Right c -> Right $ ExplicitPath (changeCoercion exp1 ((returnCoercion exp1){cardinalityCoercion = c})) exp2 (returnCoercion exp2)
+                    Right c -> if MakeCondition Nothing (Keyword "one-of") `elem` conditions (typeFromExpression exp1) 
+                        then Right $ ExplicitPath (changeCoercion exp1 ((returnCoercion exp1){cardinalityCoercion = c})) (changeCoercion exp2 exp2C) exp2C
+                        else Right $ ExplicitPath (changeCoercion exp1 ((returnCoercion exp1){cardinalityCoercion = c})) exp2 (returnCoercion exp2)
+                        where
+                            exp2C = MakeCoercion (typeCoercion $ returnCoercion exp2) (MakeOneOfCoercion (Bounds (1,1)))
             where
                 type1 = typeFromExpression exp1
                 crd1 = toCardinality $ cardinalityCoercion $ returnCoercion exp1
