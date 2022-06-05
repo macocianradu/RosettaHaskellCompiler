@@ -32,12 +32,12 @@ superToAttribute typ = MakeTypeAttribute "super" (MakeType typ (BasicType "Objec
 printAttributes :: String -> [Condition] -> [TypeAttribute] -> Doc a
 printAttributes objName conditions ats
     | MakeCondition Nothing (Keyword "one-of") `elem` conditions = vcat [nest 4 $ vcat $ 
-        zipWith (<>) ("" : repeat "| ") (map (printSumType objName) (increaseBound ats)) ++ map printCondition conditions, " deriving (Eq)"]
+        zipWith (<>) ("" : repeat "| ") (map (printSumType objName) (increaseBound ats)) ++ map printCondition conditions, " deriving (Show, Eq)"]
     | null ats = emptyDoc
     | length ats < 2 = vcat [nest 4 $ vcat $ 
-        zipWith (<>) ("" : repeat "| ") (map (printSumType objName) ats) ++ map printCondition conditions, " deriving (Eq)", printDefault objName (objName ++ capitalize (attributeName (head ats))) ats]
+        zipWith (<>) ("" : repeat "| ") (map (printSumType objName) ats) ++ map printCondition conditions, " deriving (Show, Eq)", printDefault objName (objName ++ capitalize (attributeName (head ats))) ats]
     | otherwise = vcat [nest 4 $ vcat ("Make" <> pretty objName <+> "{" : 
-        punctuate comma (map (printAttribute objName) ats) ++ map printCondition conditions), "}"] <+> "deriving (Eq)" <> line <> printDefault objName ("Make" ++ objName) ats
+        punctuate comma (map (printAttribute objName) ats) ++ map printCondition conditions), "}"] <+> "deriving (Show, Eq)" <> line <> printDefault objName ("Make" ++ objName) ats
    
 -- |Converts a TypeAttribute into a haskell valid Doc
 printAttribute :: String -> TypeAttribute -> Doc a

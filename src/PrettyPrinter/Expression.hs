@@ -13,7 +13,7 @@ printExpression ExplicitEmpty = "[]"
 printExpression (ExplicitVariable name coer)
     | "item" `isPrefixOf` name = printCoercion coer $ pretty (replacePrefix "item" name "x") 
     | otherwise = printCoercion coer $ pretty name
-printExpression (Value "empty" coer) = printCoercion coer "[]"
+printExpression (Value "empty" coer) = error $ show coer --printCoercion coer "[]"
 printExpression (Value s coer) = printCoercion coer $ pretty s
 printExpression (ExplicitKeyword k) = pretty k
 printExpression (ExplicitEnumCall name val coer) = printCoercion coer $ pretty name <> pretty val

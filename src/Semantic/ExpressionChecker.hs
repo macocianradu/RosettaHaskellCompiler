@@ -222,12 +222,12 @@ checkExpression defT symbolMap (IfElse cond ex1 ex2) =
                     Left err -> Left $ ErrorInsideFunction $ show err
                     Right thenExp -> case checkExpression defT symbolMap ex2 of
                         Left err -> Left $ ErrorInsideFunction $ show err
-                        Right elseExp ->
-                            Right $ ExplicitIfElse (condType, condCoerce)
-                            (thenExp, MakeCoercion [MakeIdCoercion $ typeFromExpression thenExp]
-                             (MakeCardinalityIdCoercion $ toCardinality $ cardinalityCoercion $ returnCoercion thenExp))
-                            (elseExp, MakeCoercion [MakeIdCoercion $ typeFromExpression elseExp]
-                             (MakeCardinalityIdCoercion $ toCardinality $ cardinalityCoercion $ returnCoercion elseExp)) (returnCoercion thenExp)
+                        Right elseExp -> case returnCoercion elseExp `coercionIncluded` returnCoercion thenExp of
+                            Left _ -> Left $ IfExpressionsDifferentTypes (show thenExp) (show elseExp)
+                            Right c -> Right $ ExplicitIfElse (condType, condCoerce)
+                                (thenExp, MakeCoercion [MakeIdCoercion $ typeFromExpression thenExp]
+                                (MakeCardinalityIdCoercion $ toCardinality $ cardinalityCoercion $ returnCoercion thenExp))
+                                (elseExp, c) (returnCoercion thenExp)
                         --(typeMatch ex1Type ex2Type, smallestBound ex1Card ex2Type)
 
 -- |TODO Handle nested lists and lists with parens
