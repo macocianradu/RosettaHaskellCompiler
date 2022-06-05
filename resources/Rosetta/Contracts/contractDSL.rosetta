@@ -12,7 +12,7 @@ type Obs:
 
 type ExchangeRate:
   from UnitType (1..1)
-  to UnitType(1..1)
+  to UnitType (1..1)
 
 func Konst:
   inputs:
@@ -255,11 +255,11 @@ func ResolveQuantity:
     only-element
 
   assign-output resolvedQuantity -> multiplier:
-    resolvedValue -> value
+    resolvedValue -> multiplier
 
   assign-output resolvedQuantity -> unitOfAmount:
     resolvedValue -> unitOfAmount
-/*
+
 func CashflowPayoutToContract:
   inputs:
     cashflow Cashflow (1..1)
@@ -269,7 +269,7 @@ func CashflowPayoutToContract:
     zcb Contract (1..1)
 
   alias quantity:
-    ResolveQuantity(cashflow -> payoutQuantity -> resolvedQuantity -> location, tradeLot)
+    ResolveQuantity(cashflow -> payoutQuantity -> resolvedQuantity -> location only-element, tradeLot)
 
   alias fixingDate:
     if settlementTerms -> cashSettlementTerms exists then
@@ -292,27 +292,27 @@ func CashflowPayoutToContract:
       , if fixingDate exists then
           MkGet
           ( MkTruncate
-            ( fixingDate
+            ( fixingDate only-element
             , MkScale
-              ( ExchangeRateFunc(quantity -> unitOfAmount, settlementTerms -> settlementCurrency)
+              ( ExchangeRateFunc(quantity -> unitOfAmount only-element, settlementTerms -> unitType)
               , MkGet
                 ( MkTruncate
                   ( settlementTerms -> settlementDate -> valueDate
-                  , MkOne (settlementTerms -> settlementCurrency)
+                  , MkOne (settlementTerms -> unitType)
                   )
                 )
               )
             )
           )
         else
-          MkOne(quantity -> unitOfAmount -> currency))
+          MkOne(quantity -> unitOfAmount only-element))
     )
 
-/*
+
 func ForeignExchangeToContract:
   inputs:
     foreignExchange ForeignExchange (1..1)
-    tradeLot TradeLot (0..*)
+    tradeLot TradeLot (1..*)
     settlementTerms SettlementTerms (0..1)
   output:
     contract Contract (1..1)
@@ -326,7 +326,7 @@ func ForeignExchangeToContract:
 func ForwardPayoutToContract:
   inputs:
     fx                    ForwardPayout (1..1)
-    tradeLot              TradeLot (0..*)
+    tradeLot              TradeLot (1..*)
   output:
     contract Contract (1..1)
   assign-output contract:
@@ -334,7 +334,7 @@ func ForwardPayoutToContract:
       ( MkTruncate
           ( fx -> settlementTerms -> settlementDate -> valueDate
           , ForeignExchangeToContract
-              ( fx -> underlier -> foreignExchange
+              ( fx -> underlier -> foreignExchange  
               , tradeLot
               , fx -> settlementTerms
               )
@@ -344,19 +344,15 @@ func ForwardPayoutToContract:
 func OptionPayoutToEuropean:
   inputs:
     optionPayout OptionPayout (1..1)
-    tradeLot     TradeLot     (0..*)
+    tradeLot     TradeLot     (1..*)
   output:
     contract Contract (1..1)
 
   alias europeanExerciseTerms:
     optionPayout -> exerciseTerms -> optionStyle -> europeanExercise
   alias adjustedExpirationDate:
-    europeanExerciseTerms -> expirationDate only-element -> adjustableDate -> adjustedDate -> value
+    europeanExerciseTerms -> expirationDate only-element -> adjustableDate -> adjustedDate
 
-  condition IsEuropean:
-    europeanExerciseTerms exists
-  condition HasAdjustedDate:
-    adjustedExpirationDate exists
   assign-output contract:
     EuropeanOption
       ( adjustedExpirationDate only-element
@@ -367,9 +363,9 @@ func OptionPayoutToEuropean:
 
 func ContractualProductToContract:
   inputs:
-    contractualProduct ContractualProduct (1..*)
-    tradeLot           TradeLot           (0..*)
-    settlementTerms    SettlementTerms    (0..*)
+    contractualProduct ContractualProduct (1..1)
+    tradeLot           TradeLot           (1..*)
+    settlementTerms    SettlementTerms    (0..1)
   output:
     contract Contract (1..1)
   alias payout: contractualProduct -> economicTerms -> payout
@@ -378,25 +374,26 @@ func ContractualProductToContract:
       payout
       -> optionPayout
       map [OptionPayoutToEuropean(item,tradeLot)]
-      reduce-left c1 c2 [MkBoth(c1,c2)]
+      reduce c1 c2 [MkBoth(c1,c2)]
 
     else if payout -> forwardPayout exists then
       payout
       -> forwardPayout
       map [ForwardPayoutToContract(item,tradeLot)]
-      reduce-left c1 c2 [MkBoth(c1,c2)]
+      reduce c1 c2 [MkBoth(c1,c2)]
 
     else /* assume cashflow otherwise */
-/*      payout
+      payout
       -> cashflow
       map [CashflowPayoutToContract(item,tradeLot,settlementTerms)]
-      reduce-left c1 c2 [MkBoth(c1,c2)]
+      reduce c1 c2 [MkBoth(c1,c2)]
+
 
 func ProductToContract:
   inputs:
-    product         Product         (1..*)
-    tradeLot        TradeLot        (0..*)
-    settlementTerms SettlementTerms (0..*)
+    product         Product         (1..1)
+    tradeLot        TradeLot        (1..*)
+    settlementTerms SettlementTerms (0..1)
   output:
     contract Contract (1..1)
 
@@ -417,4 +414,3 @@ func Main:
 
  assign-output contract:
    ProductToContract(trade -> tradableProduct -> product, trade -> tradableProduct -> tradeLot, empty)
-*/

@@ -4,11 +4,3 @@ version "${version.ok}"
 enum CounterpartyRoleEnum:
 	Party1
 	Party2
-	
-enum CapacityUnitEnum:
-	ALW
-	BBL
-	
-enum FinancialUnitEnum:
-	Contract
-	ContractualProduct
