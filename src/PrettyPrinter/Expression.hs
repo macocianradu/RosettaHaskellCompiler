@@ -10,9 +10,7 @@ import Data.List (isPrefixOf)
 
 printExpression :: ExplicitExpression -> Doc a
 printExpression ExplicitEmpty = "[]"
-printExpression (ExplicitVariable name coer)
-    | "item" `isPrefixOf` name = printCoercion coer $ pretty (replacePrefix "item" name "x") 
-    | otherwise = printCoercion coer $ pretty name
+printExpression (ExplicitVariable name coer) = printCoercion coer $ pretty name
 printExpression (Value "empty" coer) = error $ show coer --printCoercion coer "[]"
 printExpression (Value s coer) = printCoercion coer $ pretty s
 printExpression (ExplicitKeyword k) = pretty k
@@ -20,21 +18,23 @@ printExpression (ExplicitEnumCall name val coer) = printCoercion coer $ pretty n
 printExpression (ExplicitParens ex c) = "(" <> printExpression ex <> ")"
 printExpression (ExplicitList ex) = Prettyprinter.list [printExpression x | x <- ex]
 printExpression (ExplicitReduce op lst v1 v2 cond coer) = "foldl1" <+> enclose "(" ")" ("\\" <+> pretty v1 <+> pretty v2 <+> "->" <+> printExpression cond) <+> enclose "(" ")" (printExpression lst)  
-printExpression (ExplicitListOp "map" lst cond coer) = enclose "[" "]" (printExpression cond <+> "|" <+> "x" <+> "<-" <+> printExpression lst)
-printExpression (ExplicitListOp "filter" lst cond coer) = enclose "[" "]" ("x" <+> "|" <+> "x" <+> "<-" <+> printExpression lst <> "," <+>  printExpression cond)
-printExpression (ExplicitListOp op lst cond coer) = pretty op <+> nest 4 (vsep [emptyDoc, enclose "(" ")" (printExpression cond), enclose "(" ")" (printExpression lst)])
+printExpression (ExplicitListOp op lst cond coer) = pretty op <+> enclose "(" ")" ("\\item" <+> "->" <+> printExpression cond) <> line <> enclose "(" ")" (printExpression lst)
+--printExpression (ExplicitListOp "filter" lst cond coer) = "filter" <+> enclose "(" ")" ("\\x" <+> "->" <+> printExpression cond) <> line <> enclose "(" ")" (printExpression lst)
+--printExpression (ExplicitListOp op lst cond coer) = pretty op <+> nest 4 (vsep [emptyDoc, enclose "(" ")" (printExpression cond), enclose "(" ")" (printExpression lst)])
 printExpression (ExplicitListUnaryOp "only-element" lst coer)
     | toCardinality (cardinalityCoercion (returnCoercion lst)) == Bounds (0, 1) = "fromJust" <+> enclose "(" ")" (nest 4 (line <> printExpression lst))
     | otherwise = "head" <+> enclose "(" ")" (nest 4 (line <> printExpression lst))
 printExpression (ExplicitListUnaryOp "flatten" lst coer) = "concat" <+> enclose "(" ")" (nest 4 (line <> printExpression lst))
 printExpression (ExplicitListUnaryOp op lst coer) = pretty op <+> nest 4 (printExpression lst)
+printExpression (ExplicitPath (ExplicitVariable var1 ret1) (ExplicitVariable var2 ret2) returnCoerce) = 
+    pretty (uncapitalize $ typeName $ coercionType $ typeCoercion ret1) <> pretty (capitalize var2) <+> enclose "(" ")" (printCoercion ret1 (pretty var1))
 printExpression (ExplicitPath ex1 (ExplicitVariable var ret) returnCoerce) =  
     pretty (uncapitalize $ typeName $ typeFromExpression ex1) <> pretty (capitalize var) <+> nest 4 (line <>
     enclose "(" ")" (printCoercion (returnCoercion ex1) (printExpression (ex1{returnCoercion = MakeCoercion [MakeIdCoercion (typeFromExpression ex1)] (MakeCardinalityIdCoercion (Bounds (1,1)))}))))
 printExpression ExplicitPath {} = error "This should never happen. Path Expression 2nd argument is not variable"
 printExpression (ExplicitFunction "exists" args returnCoerce) 
     | toCardinality (cardinalityCoercion (snd (head args))) == Bounds (0, 1) = printCoercion returnCoerce "isJust" <+> enclose "(" ")" (printCoercion (snd $ head args) (printExpression (fst $ head args)))
-    | otherwise = printCoercion returnCoerce "length" <+> enclose "(" ")" (printCoercion (snd $ head args) (printExpression (fst $ head args))) <+> ">=" <+> "1"
+    | otherwise = printCoercion returnCoerce "not" <+> enclose "(" ")" ("null" <+> enclose "(" ")" (printCoercion (snd $ head args) (printExpression (fst $ head args))))
 printExpression (ExplicitFunction "is absent" args returnCoerce) = printCoercion returnCoerce "isNothing" <+> printCoercion (snd $ head args) (printExpression (fst $ head args))
 printExpression (ExplicitFunction "single exists" args returnCoerce) = printCoercion returnCoerce "length" <+> printCoercion (snd $ head args) (printExpression (fst $ head args)) <+> "==" <+> "1"
 printExpression (ExplicitFunction "multiple exists" args returnCoerce) = printCoercion returnCoerce "length" <+> printCoercion (snd $ head args) (printExpression (fst $ head args)) <+> ">" <+> "1"
@@ -49,9 +49,10 @@ printExpression (ExplicitFunction "all <>" args returnCoerce) = printCoercion (s
 printExpression (ExplicitFunction "all =" args returnCoerce) = "all (Eq)" <+> printCoercion (snd $ head $ tail args) (printExpression (fst $ head $ tail args)) <+> printCoercion (snd $ head args) (printExpression (fst $ head args))
 printExpression (ExplicitFunction "and" args returnCoerce) = printCoercion (snd $ head args) (printExpression (fst $ head args)) <+> "&&" <+> printCoercion (snd $ head $ tail args) (printExpression (fst $ head $ tail args))
 printExpression (ExplicitFunction "or" args returnCoerce) = printCoercion (snd $ head args) (printExpression (fst $ head args)) <+> "||" <+> printCoercion (snd $ head $ tail args) (printExpression (fst $ head $ tail args))
-printExpression (ExplicitFunction name args returnCoerce) = 
-    if null printedArgs then pretty (uncapitalize name)
-    else  pretty (uncapitalize name) <+> (hsep (map (enclose "(" ")") printedArgs))
+printExpression (ExplicitFunction name args returnCoerce) 
+    | null printedArgs = pretty (uncapitalize name)
+    | length printedArgs == 1 = pretty (uncapitalize name) <+> enclose "(" ")" (printCoercion (snd (head args)) (printExpression (fst (head args))))
+    | otherwise = pretty (uncapitalize name) <+> hsep (map (enclose "(" ")") printedArgs)
     where printedArgs = zipWith printCoercion [c | (e,c) <- args] [printExpression e | (e, c) <- args]
 printExpression (ExplicitIfSimple cond thenBlock returnCoercion) = 
     printIf

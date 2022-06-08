@@ -18,8 +18,7 @@ typeParser =
         _ <- lexeme $ char ':'
         tDescription <- optional descriptionParser
         tAttributes <- many $ try typeAttributeParser
-        tConditions <- many $ try conditionParser
-        return (MakeType tName tSuper tDescription tAttributes tConditions)
+        MakeType tName tSuper tDescription tAttributes <$> many ( try conditionParser)
 
 -- |Parses the super class declaration statement in Rosetta into an Type
 superTypeParser :: Parser Type
