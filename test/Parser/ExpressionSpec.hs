@@ -42,23 +42,23 @@ spec = do
 exps :: [Expression]
 exps = [
     -- 1
-    InfixExp "+" (Int "1") (Parens (InfixExp "-" (Int "2") (Int "3"))),
+    InfixExp "+" (Int "1") (Parens (InfixExp "- " (Int "2") (Int "3"))),
     -- 2
     InfixExp "=" 
-        (InfixExp "-" 
-            (InfixExp "-" 
+        (InfixExp "- " 
+            (InfixExp "- " 
                 (InfixExp "*" (Variable "a") (Variable "b"))
                 (InfixExp "*" (Variable "c") (Variable "d")))
             (InfixExp "*" (Variable "e") (Variable "f")))
-        (InfixExp "-" 
-            (InfixExp "-" 
+        (InfixExp "- " 
+            (InfixExp "- " 
                 (InfixExp "*" (Variable "g") (Variable "h"))
                 (InfixExp "*" (Variable "i") (Variable "j")))
             (InfixExp "*" (Variable "k") (Variable "l"))),
     -- 3
     InfixExp "-" (InfixExp "+" (Variable "a") (Variable "b")) (InfixExp "*" (Variable "c") (InfixExp "^" (Variable "d") (Variable "e"))),
     -- 4
-    InfixExp "-" (InfixExp "-" (InfixExp "-" (InfixExp "-" (InfixExp "-" (Int "1") (Int "2")) (Int "3")) (Int "4")) (Int "5")) (Int "6"),
+    InfixExp "-" (InfixExp "- " (InfixExp "- " (InfixExp "- " (InfixExp "- " (Int "1") (Int "2")) (Int "3")) (Int "4")) (Int "5")) (Int "6"),
     -- 5
     List [Int "1", Int "2", Int "3"],
     -- 6
@@ -74,7 +74,7 @@ exps = [
          (InfixExp "-" (InfixExp "+" (Variable "a") (Variable "b")) (InfixExp "*" (Variable "c") (InfixExp "^" (Variable "d") (PathExpression (Variable "e") (Variable "x")))))
          (PrefixExp "not" (PostfixExp "exists" (Variable "a"))),
     -- 11
-    IfSimple (List [Int "1", Function "Function" [Int "3"]]) (InfixExp "-" (InfixExp "-" (Int "1") (Int "2")) (InfixExp "*" (Int "3") (InfixExp "^" (PathExpression (Variable "a") (Variable "b")) (Variable "c")))),
+    IfSimple (List [Int "1", Function "Function" [Int "3"]]) (InfixExp "- " (InfixExp "- " (Int "1") (Int "2")) (InfixExp "*" (Int "3") (InfixExp "^" (PathExpression (Variable "a") (Variable "b")) (Variable "c")))),
     -- 12
     InfixExp "or" (Variable "a") (Variable "b")
   ]

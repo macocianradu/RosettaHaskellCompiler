@@ -41,5 +41,3 @@ printDisplayName enumName (MakeEnumValue name _ (Just display)) =
     "show" <+> pretty enumName <> pretty name <+> "= \"" <> pretty display <> "\"" 
 printDisplayName enumName (MakeEnumValue name _ Nothing) =
     "show" <+> pretty enumName <> pretty name <+> "= \"" <> pretty name <> "\""
-        
-        

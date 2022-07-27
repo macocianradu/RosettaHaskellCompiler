@@ -266,7 +266,7 @@ checkFunctionCall [] fun args = Left $ UndefinedFunction $ "Undefined function: 
 checkFunctionCall ((Func n a r):symbolMap) name args
     | not $ null $ lefts args = Left $ ErrorInsideFunction (name ++ ": " ++ show (lefts args))
     | name == n = if all isRight coerce then Right $ ExplicitFunction name (zip (rights args) (rights coerce)) (MakeCoercion [MakeIdCoercion (fst r)] (MakeCardinalityIdCoercion (snd r)))
-        else checkFunctionCall symbolMap name args--Left $ UndefinedFunction $ "Undefined function: " ++ name ++ " [" ++ show (rights args) ++ "]"
+        else checkFunctionCall symbolMap name args
     | otherwise = checkFunctionCall symbolMap name args
     where
         argCoerce = map returnCoercion (rights args)
