@@ -135,7 +135,10 @@ data Cardinality =
   Bounds (Integer, Integer)
     -- |The cardinality starting from one bound until infinity (ex. 5 - *)
   | OneBound Integer
-  deriving Show
+
+instance Show Cardinality where
+    show (Bounds (x, y)) = "(" ++ show x ++ ".." ++ show y ++ ")"
+    show (OneBound x) = "(" ++ show x ++ ".." ++ "*)"
 
 instance Eq Cardinality where
     (==) (Bounds (x1, x2)) (Bounds (y1, y2))

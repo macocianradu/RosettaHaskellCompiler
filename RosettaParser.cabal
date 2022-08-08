@@ -53,6 +53,8 @@ library
       src
   build-depends:
       base >=4.7 && <5
+    , directory
+    , filepath
     , megaparsec
     , mtl
     , parser-combinators
@@ -69,6 +71,8 @@ executable RosettaParser-exe
   build-depends:
       RosettaParser
     , base >=4.7 && <5
+    , directory
+    , filepath
     , megaparsec
     , mtl
     , parser-combinators
@@ -93,6 +97,8 @@ test-suite RosettaParser-test
   build-depends:
       RosettaParser
     , base >=4.7 && <5
+    , directory
+    , filepath
     , hspec
     , hspec-megaparsec
     , megaparsec

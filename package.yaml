@@ -27,6 +27,8 @@ dependencies:
 - prettyprinter
 - parser-combinators
 - text
+- filepath
+- directory
 
 library:
   source-dirs: src

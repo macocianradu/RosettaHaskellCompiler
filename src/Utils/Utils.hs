@@ -16,42 +16,27 @@ uncapitalize s = toLower (head s) : tail s
 -- |Convert a namespace to a filename
 namespaceToName :: String -> String 
 namespaceToName [] = ".rosetta"
-namespaceToName ".*" = ".rosetta"
+namespaceToName ".*" = ".*"
 namespaceToName (c : cs)
     | c == '.' = '-' : namespaceToName cs
     | otherwise = c : namespaceToName cs
 
--- |Returns the directory of a file from a path
-fileDirectory :: String -> String
-fileDirectory s = take (length s - length (fileName s)) s
-
--- |Returns the name of a file from a path
-fileName :: String -> String
-fileName path = reverse $ fileName1 $ reverse path
-
--- |Auxiliary function for the name of a file from a path
-fileName1 :: String -> String
-fileName1 [] = []
-fileName1 (c : cs)
-    | c == '/' = []
-    | otherwise = c : fileName1 cs
-
 -- |Create a new haskell filename based on the namespace
 haskellFileName :: String -> String
-haskellFileName s = "resources/Generated/" ++ removePeriods s ++".hs"
+haskellFileName s = "resources/Generated/" ++ removeChar s '-' ++".hs"
 
 -- |Function to remove all the periods from a name, and convert the name to CamelCase
-removePeriods :: String -> String
-removePeriods [] = []
-removePeriods ['*'] = []
-removePeriods (c:cs) = toUpper c : removePeriods1 cs
+removeChar :: String -> Char -> String
+removeChar [] _ = []
+removeChar ['*'] _ = []
+removeChar (c:cs) ch = toUpper c : removeChar1 cs ch
 
 -- |Auxiliary function for converting names
-removePeriods1 :: String -> String
-removePeriods1 [] = []
-removePeriods1 (c:cs) 
-    | c == '.' = removePeriods cs
-    | otherwise = c : removePeriods1 cs
+removeChar1 :: String -> Char -> String
+removeChar1 [] ch = []
+removeChar1 (c:cs) ch 
+    | c == ch = removeChar cs ch
+    | otherwise = c : removeChar1 cs ch
 
 -- |Extract the first elements from a list of tuples
 fstlst :: [(a, b)] -> [a]
@@ -102,3 +87,9 @@ replacePrefix :: Eq a => [a] -> [a] -> [a] -> [a]
 replacePrefix a b c = case stripPrefix a b of
     Nothing -> b
     Just bs -> c ++ bs
+
+-- |Get the namespace name from the import
+getNamespace :: String -> String
+getNamespace [] = []
+getNamespace ".*" = []
+getNamespace (s : ss) = s : getNamespace ss

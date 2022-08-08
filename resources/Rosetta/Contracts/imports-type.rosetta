@@ -1,7 +1,5 @@
-namespace imports.types : <"Types used for the contract dsl">
+namespace imports : <"Types used for the contract dsl">
 version "${version.ok}"
-
-import imports.enums.*
 
 type Product:
 	contractualProduct	ContractualProduct	(0..1)

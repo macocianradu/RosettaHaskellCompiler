@@ -1,0 +1,107 @@
+namespace imports : <"Types used for the contract dsl">
+version "${version.ok}"
+
+import imports.enums.*
+
+type Product:
+	contractualProduct	ContractualProduct	(0..1)
+	foreignExchange 	ForeignExchange 	(0..1)
+	
+	condition: one-of
+
+type Trade:
+	tradableProduct 	TradableProduct 	(1..1)
+
+type TradableProduct:
+	product 	Product		(1..1)
+	tradeLot	TradeLot	(1..*)
+	
+type TradeLot:
+    priceQuantity     PriceQuantity     (1..*)
+
+type PriceQuantity:
+    quantity        Quantity            (0..*)
+
+type SettlementTerms:
+    settlementDate      SettlementDate      (0..1)
+    cashSettlementTerms CashSettlementTerms (0..*)
+    settlementCurrency  string              (0..1)
+    unitType            UnitType            (1..1)
+
+type CashSettlementTerms:
+    valuationDate ValuationDate (1..1)
+
+type ValuationDate:
+    fxFixingDate    FxFixingDate    (1..1)
+
+type FxFixingDate:
+    fxFixingDate    AdjustableOrRelativeDate (1..1)
+
+type SettlementDate:
+    valueDate   string  (1..1) 
+
+type ContractualProduct:
+    economicTerms     EconomicTerms     (1..1)
+
+type EconomicTerms:
+    payout Payout (1..1)
+
+type Payout:
+    optionPayout OptionPayout (0..*)
+    forwardPayout ForwardPayout (0..*)
+    cashflow    Cashflow (0..*)
+
+type OptionPayout:
+    exerciseTerms   OptionExercise  (1..1)
+    underlier       Product         (1..1)
+    settlementTerms SettlementTerms (0..1) 
+
+type OptionExercise:
+    optionStyle     OptionStyle     (1..1)
+
+type OptionStyle:
+	europeanExercise EuropeanExercise (0..1)
+	
+    condition: one-of
+
+type EuropeanExercise:
+    expirationDate AdjustableOrRelativeDate (1..*)
+
+type AdjustableOrRelativeDate:
+    adjustableDate AdjustableDate (0..1)
+
+type AdjustableDate:
+    adjustedDate    string  (0..1)
+    unadjustedDate  string  (0..1)
+
+type ForwardPayout:
+    settlementTerms     SettlementTerms     (1..1)
+    underlier           Product             (1..1)
+
+type ForeignExchange:
+    exchangedCurrency1      Cashflow     (1..1)
+    exchangedCurrency2      Cashflow     (1..1)
+
+type Cashflow extends PayoutBase:
+    payoutQuantity  ResolvablePayoutQuantity (1..1)
+
+type ResolvablePayoutQuantity:
+    resolvedQuantity    Quantity    (1..1)
+
+type Quantity:
+    multiplier      number          (0..1)
+    location        Address         (0..1)
+    unitOfAmount    UnitType        (0..1)
+
+type Address:
+    street          string          (1..1)
+
+type UnitType:
+    currency        string          (0..1)
+
+type PayoutBase:
+    payerReceiver  PayerReceiver    (1..1)
+
+type PayerReceiver:
+    payer       CounterpartyRoleEnum    (1..1)
+    receiver    CounterpartyRoleEnum    (1..1)

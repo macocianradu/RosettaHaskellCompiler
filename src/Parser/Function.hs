@@ -38,9 +38,10 @@ aliasParser =
 assignmentParser :: Parser (Expression, Expression)
 assignmentParser =
     do
-        _ <- lexeme $ string "assign-output"
+        _ <- lexeme $ string "assign-output" <|> string "set" <|> string "add"
         out <- expressionParser
         _ <- lexeme $ char ':'
+        _ <- lexeme $ optional descriptionParser
         assignment <- expressionParser
         return (out, assignment)
 

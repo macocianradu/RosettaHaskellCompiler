@@ -1,0 +1,6 @@
+namespace imports : <"Enums used for the contract dsl">
+version "${version.ok}"
+
+enum CounterpartyRoleEnum:
+	Party1
+	Party2

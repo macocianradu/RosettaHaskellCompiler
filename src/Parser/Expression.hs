@@ -66,13 +66,13 @@ listParser =
         return $ List (expressions ++ [lastExpr])
 
 listOperations :: [String]
-listOperations = ["map", "filter", "reduce"]
+listOperations = ["map", "filter", "reduce", "contains", "disjoint"]
 
 -- |Parses a variable in Rosetta into an Expression
 variableParser :: Parser Expression
 variableParser =
     do
-        Variable <$> camelNameParser
+        Variable <$> nameParser
 
 enumValueParser :: Parser Expression
 enumValueParser =
@@ -124,8 +124,9 @@ terminalParser =
              try booleanParser,
              try emptyParser,
              try decimalParser,
-             try variableParser,
+             try functionCallParser,
              try enumValueParser,
+             try variableParser,
              integerParser
             ]
 
@@ -164,7 +165,7 @@ eqParser =
 
 -- |The list of equality statements in Rosetta
 eqFunctions :: [String]
-eqFunctions = ["=", "<", "<=", ">", ">=", "<>"]
+eqFunctions = ["=", "<=", "<>", "<", ">=", ">"]
 
 -- |Parses a sum statement in Rosetta into an Expression
 sumParser :: Parser Expression
@@ -254,6 +255,14 @@ listOpParser =
                             con <-  between (lexeme $ char '[') (lexeme $ char ']') expressionParser
                             exp <- nestedPostOp lst
                             return $ reverseExpression $ Reduce (Text.unpack o) exp v1 v2 con
+                        "contains" -> do
+                            con <- expressionParser
+                            exp <- nestedPostOp lst
+                            return $ reverseExpression $ ListOp "contains" exp con
+                        "disjoint" -> do
+                            con <- expressionParser
+                            exp <- nestedPostOp lst
+                            return $ reverseExpression $ ListOp "disjoint" exp con
                         _ -> do 
                             con <- between (lexeme $ char '[') (lexeme $ char ']') expressionParser 
                             exp <- nestedPostOp lst
@@ -286,6 +295,14 @@ nestedListOp ex =
                         con <-  between (lexeme $ char '[') (lexeme $ char ']') expressionParser
                         exp <- nestedPostOp ex
                         return $ reverseExpression $ Reduce (Text.unpack o) exp v1 v2 con
+                    "contains" -> do
+                        con <- expressionParser
+                        exp <- nestedPostOp ex
+                        return $ reverseExpression $ ListOp "contains" exp con
+                    "disjoint" -> do
+                        con <- expressionParser
+                        exp <- nestedPostOp ex
+                        return $ reverseExpression $ ListOp "disjoint" exp con
                     _ -> do
                         con <- between (lexeme $ char '[') (lexeme $ char ']') expressionParser 
                         exp <- nestedPostOp ex

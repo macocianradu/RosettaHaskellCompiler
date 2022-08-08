@@ -9,15 +9,19 @@ import Utils.Utils
 
 -- |A declared variable or function
 data Symbol = Var{
-   varName :: String,
+   symbolName :: String,
    declaredType :: Type,
    cardinality :: Cardinality
    }
    | Func {
-   funcName :: String,
+   symbolName :: String,
    argsType :: [(Type, Cardinality)],
    returnType :: (Type, Cardinality)
-   } deriving (Show)
+   }
+
+instance Show Symbol where
+    show (Var n t c) = "Variable {name: " ++ show n ++ ", type: " ++  show t ++ ", card: " ++ show c ++ "}"
+    show (Func n i o) = "Function {name: " ++ show n ++ ", arguments: " ++  show [((typeName . fst) t, (snd t)) | t <- i]  ++ ", return: (" ++ typeName (fst o) ++ ", " ++ show (snd o) ++ ")}"
 
 instance Eq Symbol where
     (==) (Var name1 _ _) (Var name2 _ _)
@@ -96,7 +100,7 @@ addFunction (definedTypes, definedSymbols) (MakeFunction (MakeFunctionSignature 
     case head $ checkAttributes definedTypes [out] of
         Left err -> Left [err]
         Right checkedOutput -> if null (lefts checkedInputs)
-            then if name `elem` map funcName definedSymbols
+            then if name `elem` map symbolName definedSymbols
                 then Left [MultipleDeclarations name]
                 else Right $ Func name (map typeAndCardinality (rights checkedInputs)) (attributeType checkedOutput, Model.Type.cardinality out) : definedSymbols
             else Left $ lefts checkedInputs
@@ -261,10 +265,10 @@ checkList1 defT symbs (ex : exps) typ =
 
 -- |Checks whether the function that is called is already defined with the same argument types
 checkFunctionCall :: [Symbol] -> String -> [Either TypeCheckError ExplicitExpression ] -> Either TypeCheckError ExplicitExpression
-checkFunctionCall [] fun args = Left $ UndefinedFunction $ "Undefined function: " ++ fun ++ " [" 
+checkFunctionCall [] fun args = Left $ UndefinedFunction $ "Undefined function: " ++ fun ++ " [" ++ show args ++ "]"
     ++ show [(typeName $ typeFromExpression x, toCardinality $ cardinalityCoercion $ returnCoercion x) | x <- rights args] ++ "]"
 checkFunctionCall ((Func n a r):symbolMap) name args
-    | not $ null $ lefts args = Left $ ErrorInsideFunction (name ++ ": " ++ show (lefts args))
+    | not $ null $ lefts args = error $ show symbolMap ++ "\n" ++ show (lefts args)--Left $ ErrorInsideFunction (name ++ ": " ++ show (lefts args))
     | name == n = if all isRight coerce then Right $ ExplicitFunction name (zip (rights args) (rights coerce)) (MakeCoercion [MakeIdCoercion (fst r)] (MakeCardinalityIdCoercion (snd r)))
         else checkFunctionCall symbolMap name args
     | otherwise = checkFunctionCall symbolMap name args
